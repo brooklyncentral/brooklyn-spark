@@ -11,13 +11,15 @@ import brooklyn.entity.proxying.EntitySpec;
 import brooklyn.launcher.BrooklynLauncher;
 import brooklyn.util.CommandLineUtil;
 
-public class SparkTest  extends AbstractApplication {
+public class SparkTest extends AbstractApplication {
 
     public static String DEFAULT_LOCATION_SPEC = "AWS Virginia (us-east-1)";
 
     @Override
     public void init() {
-        addChild(EntitySpec.create(SparkNode.class));
+        addChild(EntitySpec.create(SparkCluster.class)
+                .configure(SparkCluster.INITIAL_SIZE, 2)
+                .configure(SparkCluster.MEMBER_SPEC, EntitySpec.create(SparkNode.class)));
     }
 
     public static void main(String[] argv) {

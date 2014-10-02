@@ -1,0 +1,2 @@
+export SPARK_WORKER_WEBUI_PORT=${entity.workerWebPort?c}
+export SPARK_PUBLIC_DNS=${entity.hostname}
