@@ -45,23 +45,36 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
         super.connectSensors();
         connectServiceUpIsRunning();
 
+        HostAndPort hp = null;
+        if (isMaster()) {
+            Integer masterWebPort = getAttribute(SparkNode.SPARK_MASTER_WEB_PORT);
+            Preconditions.checkNotNull(masterWebPort, "WEBUI Port is not set for %s", this);
+            hp = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, masterWebPort);
+        } else {
+            Integer workerWebPort = getAttribute(SparkNode.SPARK_WORKER_WEB_PORT);
+            Preconditions.checkNotNull(workerWebPort, "WEBUI Port is not set for %s", this);
+            hp = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, workerWebPort);
+        }
 
-        Integer workerWebPort = getAttribute(SparkNode.SPARK_WORKER_WEB_PORT);
-        Preconditions.checkNotNull(workerWebPort, "WEBUI Port is not set for %s", this);
-        HostAndPort hp = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, workerWebPort);
-        String workerWebUrl = String.format("http://%s", hp.toString());
+        Preconditions.checkNotNull(hp, "Host and Port is not set for %s", this);
+        String webUrl = String.format("http://%s", hp.toString());
 
         HttpFeed.Builder httpFeedBuilder = HttpFeed.builder()
                 .entity(this)
                 .period(1000)
-                .baseUri(workerWebUrl + "/json/")
-                .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_ID, "id"))
-                .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES, "cores"))
-                .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY, "memory"))
-                .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_USED, "memoryused"));
+                .baseUri(webUrl + "/json/")
+                .poll(new HttpPollConfig<Boolean>(SERVICE_UP)
+                        .onSuccess(HttpValueFunctions.responseCodeEquals(200))
+                        .onFailureOrException(Functions.constant(false)));
 
         if (isMaster()) {
-            httpFeedBuilder.poll(getSensorFromNodeStat(SparkNode.SPARK_STATUS, "status"));
+            httpFeedBuilder.poll(getSensorFromNodeStat(SparkNode.SPARK_STATUS_SENSOR, "status"));
+        } else {
+            httpFeedBuilder.poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_ID_SENSOR, "id"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_SENSOR, "cores"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_USED_SENSOR, "coresused"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_SENSOR, "memory"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_USED_SENSOR, "memoryused"));
         }
         httpFeed = httpFeedBuilder.build();
     }
@@ -114,8 +127,22 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
         return getAttribute(HOSTNAME);
     }
 
+    @Override
+    public Integer getSparkWorkerCores() {
+        return getConfig(SparkNode.SPARK_WORKER_CORES);
+    }
+
+    @Override
+    public String getSparkWorkerMemory() {
+        return getConfig(SparkNode.SPARK_WORKER_MEMORY);
+    }
+
+    @Override
+    public String getSubnetAddress() {
+        return getAttribute(SparkNode.SUBNET_ADDRESS);
+    }
+
     private boolean isMaster() {
         return getAttribute(IS_MASTER) != null ? getAttribute(IS_MASTER) : false;
     }
-
 }

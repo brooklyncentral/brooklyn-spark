@@ -68,6 +68,12 @@ public interface SparkNode extends SoftwareProcess {
             "spark.metricsPropertiesTempalteUrl", "Template file (in freemarker format) for the metrics.properties config file",
             "classpath://metrics.properties.template");
 
+    @SetFromFlag("sparkWorkerCores")
+    ConfigKey<Integer> SPARK_WORKER_CORES = ConfigKeys.newIntegerConfigKey("spark.workerCores", " sets the number of cores to use on this worker node", 1);
+
+    @SetFromFlag("sparkWorkerMemory")
+    ConfigKey<String> SPARK_WORKER_MEMORY = ConfigKeys.newStringConfigKey("spark.workerMemory", "sets how much total memory workers have to give executors (e.g. 1000m, 2g)", "1000m");
+
 
     AttributeSensor<String> SPARK_HOME_DIR = Sensors.newStringSensor("spark.homeDir", "Home directory for Spark");
     AttributeSensor<Boolean> IS_MASTER = Sensors.newBooleanSensor("spark.isMaster", "flag to determine if the current spark node is the master node for the cluster");
@@ -87,12 +93,12 @@ public interface SparkNode extends SoftwareProcess {
     "finishedexecutors" : [ ]
     }*/
 
-    AttributeSensor<String> SPARK_WORKER_ID = Sensors.newStringSensor("spark.workerId", "The assigned worker Id by the Spark cluster");
-    AttributeSensor<Integer> SPARK_WORKER_CORES = Sensors.newIntegerSensor("spark.workerCores", "Number of cores available for the worker");
-    AttributeSensor<Integer> SPARK_WORKER_CORES_USED = Sensors.newIntegerSensor("spark.workerCoresUsed", "Number of cores used in the worker");
-    AttributeSensor<Integer> SPARK_WORKER_MEMORY = Sensors.newIntegerSensor("spark.workerMemory", "Amount of memory available in the worker");
-    AttributeSensor<Integer> SPARK_WORKER_MEMORY_USED = Sensors.newIntegerSensor("spark.workerMemoryUsed", "Amount of memory used by worker");
-    AttributeSensor<Integer> SPARK_STATUS = Sensors.newIntegerSensor("spark.status", "Status of the Spark Cluster");
+    AttributeSensor<String> SPARK_WORKER_ID_SENSOR = Sensors.newStringSensor("spark.workerId", "The assigned worker Id by the Spark cluster");
+    AttributeSensor<Integer> SPARK_WORKER_CORES_SENSOR = Sensors.newIntegerSensor("spark.workerCores", "Number of cores available for the worker");
+    AttributeSensor<Integer> SPARK_WORKER_CORES_USED_SENSOR = Sensors.newIntegerSensor("spark.workerCoresUsed", "Number of cores used in the worker");
+    AttributeSensor<Integer> SPARK_WORKER_MEMORY_SENSOR = Sensors.newIntegerSensor("spark.workerMemory", "Amount of memory available in the worker");
+    AttributeSensor<Integer> SPARK_WORKER_MEMORY_USED_SENSOR = Sensors.newIntegerSensor("spark.workerMemoryUsed", "Amount of memory used by worker");
+    AttributeSensor<String> SPARK_STATUS_SENSOR = Sensors.newStringSensor("spark.status", "Status of the Spark Cluster");
 
     public static final MethodEffector<Void> JOIN_SPARK_CLUSTER = new MethodEffector<Void>(SparkNode.class, "joinSparkCluster");
     public static final MethodEffector<Void> START_MASTER_NODE = new MethodEffector<Void>(SparkNode.class, "startMasterNode");
@@ -116,4 +122,10 @@ public interface SparkNode extends SoftwareProcess {
     public Integer getWorkerServicePort();
 
     public String getHostname();
+
+    public Integer getSparkWorkerCores();
+
+    public String getSparkWorkerMemory();
+
+    public String getSubnetAddress();
 }

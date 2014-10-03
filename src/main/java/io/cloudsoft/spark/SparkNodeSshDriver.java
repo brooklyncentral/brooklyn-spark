@@ -39,10 +39,13 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
     @Override
     public void preInstall() {
 
-        if (entity.getAttribute(SparkCluster.FIRST_MEMBER)) {
-            entity.setAttribute(SparkNode.IS_MASTER, Boolean.TRUE);
-        } else {
-            entity.setAttribute(SparkNode.IS_MASTER, Boolean.FALSE);
+        //assign the first node in the cluster to be master if master hasn't been set yet.
+        if (!Optional.fromNullable(entity.getAttribute(SparkNode.IS_MASTER)).isPresent()) {
+            if (entity.getAttribute(SparkCluster.FIRST_MEMBER)) {
+                entity.setAttribute(SparkNode.IS_MASTER, Boolean.TRUE);
+            } else {
+                entity.setAttribute(SparkNode.IS_MASTER, Boolean.FALSE);
+            }
         }
 
         resolver = Entities.newDownloader(this);
@@ -155,9 +158,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
     @Override
     public boolean isRunning() {
 
-//        return newScript(CHECK_RUNNING)
-//                .body.append(format("%s/bin/run-example SparkPi 10", sparkHome))
-//                .execute() == 0;
+        //no CLI tools to check if the Spark node is running through SSH. See connectSensors() in SparkNodeImpl for http polling for SERVICE_UP.
         return true;
     }
 
