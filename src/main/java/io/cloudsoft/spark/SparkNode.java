@@ -1,8 +1,10 @@
 package io.cloudsoft.spark;
 
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.reflect.TypeToken;
 
 import brooklyn.config.ConfigKey;
 import brooklyn.entity.annotation.Effector;
@@ -50,23 +52,18 @@ public interface SparkNode extends SoftwareProcess {
     @SetFromFlag("masterDriverPort")
     PortAttributeSensorAndConfigKey SPARK_MASTER_DRIVER_PORT = new PortAttributeSensorAndConfigKey("spark.master.driverPort", "Spark Master driver Port", PortRanges.fromString("4040+"));
 
-    @SetFromFlag("workerWebPort")
-    PortAttributeSensorAndConfigKey SPARK_WORKER_WEB_PORT = new PortAttributeSensorAndConfigKey("spark.worker.webPort", "Spark Worker node Web Interface Port", PortRanges.fromString("8081+"));
-
-    @SetFromFlag("sparkEnvMasterTemplateUrl")
-    ConfigKey<String> SPARK_ENV_MASTER_TEMPLATE_URL = ConfigKeys.newStringConfigKey(
-            "spark.envMasterTemplateUrl", "Template file (in freemarker format) for the spark-env.sh config file to configure the Spark Master",
-            "classpath://spark-env.sh.master.template");
-
-    @SetFromFlag("sparkEnvWorkerTemplateUrl")
-    ConfigKey<String> SPARK_ENV_WORKER_TEMPLATE_URL = ConfigKeys.newStringConfigKey(
-            "spark.envWorkerTemplateUrl", "Template file (in freemarker format) for the spark-env.sh config file to configure the Spark Worker",
-            "classpath://spark-env.sh.worker.template");
+    @SetFromFlag("workerWebPortRangeStart")
+    PortAttributeSensorAndConfigKey SPARK_WORKER_WEB_PORT_RANGE = new PortAttributeSensorAndConfigKey("spark.worker.webPortRangeStart", "Spark Worker node start Web Interface Port", PortRanges.fromString("8081+"));
 
     @SetFromFlag("sparkMetricsPropertiesTempalteUrl")
     ConfigKey<String> SPARK_METRICS_PROPS_TEMPLATE_URL = ConfigKeys.newStringConfigKey(
             "spark.metricsPropertiesTempalteUrl", "Template file (in freemarker format) for the metrics.properties config file",
             "classpath://metrics.properties.template");
+
+    @SetFromFlag("sparkEnvTemplateUrl")
+    ConfigKey<String> SPARK_ENV_TEMPLATE_URL = ConfigKeys.newStringConfigKey(
+            "spark.envTemplateUrl", "Template file (in freemarker format) for the spark-env.sh config file to configure the Spark Node",
+            "classpath://spark-env.sh.template");
 
     @SetFromFlag("sparkWorkerCores")
     ConfigKey<Integer> SPARK_WORKER_CORES = ConfigKeys.newIntegerConfigKey("spark.workerCores", " sets the number of cores to use on this worker node", 1);
@@ -74,25 +71,17 @@ public interface SparkNode extends SoftwareProcess {
     @SetFromFlag("sparkWorkerMemory")
     ConfigKey<String> SPARK_WORKER_MEMORY = ConfigKeys.newStringConfigKey("spark.workerMemory", "sets how much total memory workers have to give executors (e.g. 1000m, 2g)", "1000m");
 
+    @SetFromFlag("sparkPidDir")
+    ConfigKey<String> SPARK_PID_DIR = ConfigKeys.newStringConfigKey("spark.pidDir", "The directory location of the Spark PID files", "/tmp");
 
     AttributeSensor<String> SPARK_HOME_DIR = Sensors.newStringSensor("spark.homeDir", "Home directory for Spark");
     AttributeSensor<Boolean> IS_MASTER = Sensors.newBooleanSensor("spark.isMaster", "flag to determine if the current spark node is the master node for the cluster");
     AttributeSensor<Boolean> IS_MASTER_INITIALIZED = Sensors.newBooleanSensor("spark.isMasterInitialized", "flag to determine if the master node has been initialized");
     AttributeSensor<String> MASTER_CONNECTION_URL = Sensors.newStringSensor("spark.masterConnectionUrl", "url that is used by workers to connect to the masternode");
+    AttributeSensor<List<Long>> WORKER_INSTANCE_IDS = Sensors.newSensor(new TypeToken<List<Long>>() {
+    }, "spark.wokerInstanceIds", "The Spark worker instances IDs initialized on this node");
 
-    /* Attributes gathered from polling the metrics servlet on spark workers
-    * {
-     "id" : "worker-20140929154440-ip-10-180-145-69.ec2.internal-36822",
-    "masterurl" : "spark://ip-10-183-211-217:7077",
-    "masterwebuiurl" : "http://ip-10-183-211-217:8080",
-    "cores" : 1,
-    "coresused" : 0,
-    "memory" : 631,
-    "memoryused" : 0,
-    "executors" : [ ],
-    "finishedexecutors" : [ ]
-    }*/
-
+    //TODO: aggregate the sensors to include all the current instances in the cluster.
     AttributeSensor<String> SPARK_WORKER_ID_SENSOR = Sensors.newStringSensor("spark.workerId", "The assigned worker Id by the Spark cluster");
     AttributeSensor<Integer> SPARK_WORKER_CORES_SENSOR = Sensors.newIntegerSensor("spark.workerCores", "Number of cores available for the worker");
     AttributeSensor<Integer> SPARK_WORKER_CORES_USED_SENSOR = Sensors.newIntegerSensor("spark.workerCoresUsed", "Number of cores used in the worker");
@@ -100,12 +89,12 @@ public interface SparkNode extends SoftwareProcess {
     AttributeSensor<Integer> SPARK_WORKER_MEMORY_USED_SENSOR = Sensors.newIntegerSensor("spark.workerMemoryUsed", "Amount of memory used by worker");
     AttributeSensor<String> SPARK_STATUS_SENSOR = Sensors.newStringSensor("spark.status", "Status of the Spark Cluster");
 
-    public static final MethodEffector<Void> JOIN_SPARK_CLUSTER = new MethodEffector<Void>(SparkNode.class, "joinSparkCluster");
+    public static final MethodEffector<Void> ADD_SPARK_WORKER_INSTANCES = new MethodEffector<Void>(SparkNode.class, "addSparkWorkerInstances");
     public static final MethodEffector<Void> START_MASTER_NODE = new MethodEffector<Void>(SparkNode.class, "startMasterNode");
     public static final MethodEffector<Void> SUBMIT_SPARK_APP = new MethodEffector<Void>(SparkNode.class, "submitSparkApp");
 
-    @Effector(description = "add this worker node to the spark cluster")
-    public void joinSparkCluster(@EffectorParam(name = "masterConnectionUrl") String masterNodeConnectionUrl);
+    @Effector(description = "add this worker instances to this spark node")
+    public void addSparkWorkerInstances(@EffectorParam(name = "noOfInstances") Integer numberOfInstances);
 
     @Effector(description = "initialize master node if this node is promoted to be the spark master node")
     public void startMasterNode();

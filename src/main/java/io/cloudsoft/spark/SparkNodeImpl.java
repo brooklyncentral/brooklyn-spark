@@ -50,33 +50,31 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
             Integer masterWebPort = getAttribute(SparkNode.SPARK_MASTER_WEB_PORT);
             Preconditions.checkNotNull(masterWebPort, "WEBUI Port is not set for %s", this);
             hp = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, masterWebPort);
-        } else {
-            Integer workerWebPort = getAttribute(SparkNode.SPARK_WORKER_WEB_PORT);
-            Preconditions.checkNotNull(workerWebPort, "WEBUI Port is not set for %s", this);
-            hp = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, workerWebPort);
+
+
+            Preconditions.checkNotNull(hp, "Host and Port is not set for %s", this);
+            String webUrl = String.format("http://%s", hp.toString());
+
+            httpFeed = HttpFeed.builder()
+                    .entity(this)
+                    .period(1000)
+                    .baseUri(webUrl + "/json/")
+                    .poll(new HttpPollConfig<Boolean>(SERVICE_UP)
+                            .onSuccess(HttpValueFunctions.responseCodeEquals(200))
+                            .onFailureOrException(Functions.constant(false)))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_STATUS_SENSOR, "status"))
+                    .build();
+
+//        if (isMaster()) {
+//        } else {
+//            httpFeedBuilder.poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_ID_SENSOR, "id"))
+//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_SENSOR, "cores"))
+//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_USED_SENSOR, "coresused"))
+//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_SENSOR, "memory"))
+//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_USED_SENSOR, "memoryused"));
+//        }
+//        httpFeed = httpFeedBuilder.build();
         }
-
-        Preconditions.checkNotNull(hp, "Host and Port is not set for %s", this);
-        String webUrl = String.format("http://%s", hp.toString());
-
-        HttpFeed.Builder httpFeedBuilder = HttpFeed.builder()
-                .entity(this)
-                .period(1000)
-                .baseUri(webUrl + "/json/")
-                .poll(new HttpPollConfig<Boolean>(SERVICE_UP)
-                        .onSuccess(HttpValueFunctions.responseCodeEquals(200))
-                        .onFailureOrException(Functions.constant(false)));
-
-        if (isMaster()) {
-            httpFeedBuilder.poll(getSensorFromNodeStat(SparkNode.SPARK_STATUS_SENSOR, "status"));
-        } else {
-            httpFeedBuilder.poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_ID_SENSOR, "id"))
-                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_SENSOR, "cores"))
-                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_USED_SENSOR, "coresused"))
-                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_SENSOR, "memory"))
-                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_USED_SENSOR, "memoryused"));
-        }
-        httpFeed = httpFeedBuilder.build();
     }
 
     public void disconnectSensors() {
@@ -87,9 +85,10 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
         }
     }
 
+
     @Override
-    public void joinSparkCluster(String masterNodeConnectionUrl) {
-        getDriver().joinSparkCluster(masterNodeConnectionUrl);
+    public void addSparkWorkerInstances(Integer numberOfInstances) {
+        getDriver().addSparkWorkerInstances(numberOfInstances);
     }
 
     @Override
@@ -114,7 +113,7 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
 
     @Override
     public Integer getWorkerWebPort() {
-        return getAttribute(SparkNode.SPARK_WORKER_WEB_PORT);
+        return getAttribute(SparkNode.SPARK_WORKER_WEB_PORT_RANGE);
     }
 
     @Override

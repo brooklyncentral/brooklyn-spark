@@ -6,7 +6,7 @@ import brooklyn.entity.basic.SoftwareProcessDriver;
 
 public interface SparkNodeDriver extends SoftwareProcessDriver {
 
-    public void joinSparkCluster(String masterNodeConnectionUrl);
+    public void addSparkWorkerInstances(Integer noOfInstances);
     public void startMasterNode();
     public void submitSparkApp(String appName);
     public String getSparkHome();

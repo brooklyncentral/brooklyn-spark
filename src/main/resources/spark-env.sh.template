@@ -41,3 +41,9 @@
 # - SPARK_HISTORY_OPTS, to set config properties only for the history server (e.g. "-Dx=y")
 # - SPARK_DAEMON_JAVA_OPTS, to set config properties for all daemons (e.g. "-Dx=y")
 # - SPARK_PUBLIC_DNS, to set the public dns name of the master or workers
+
+export SPARK_MASTER_PORT=${entity.masterServicePort?c}
+export SPARK_MASTER_WEBUI_PORT=${entity.masterWebPort?c}
+export SPARK_PUBLIC_DNS=${entity.hostname}
+export SPARK_WORKER_MEMORY=${entity.sparkWorkerMemory}
+export SPARK_WORKER_CORES=${entity.sparkWorkerCores?c}

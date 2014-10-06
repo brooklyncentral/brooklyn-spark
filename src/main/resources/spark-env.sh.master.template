@@ -1,3 +1,0 @@
-export SPARK_MASTER_PORT=${entity.masterServicePort?c}
-export SPARK_MASTER_WEBUI_PORT=${entity.masterWebPort?c}
-export SPARK_PUBLIC_DNS=${entity.hostname}

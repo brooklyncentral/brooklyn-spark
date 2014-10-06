@@ -1,4 +1,0 @@
-export SPARK_WORKER_WEBUI_PORT=${entity.workerWebPort?c}
-export SPARK_PUBLIC_DNS=${entity.hostname}
-export SPARK_WORKER_MEMORY=${entity.sparkWorkerMemory}
-export SPARK_WORKER_CORES=${entity.sparkWorkerCores?c}

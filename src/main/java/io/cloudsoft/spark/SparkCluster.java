@@ -1,6 +1,7 @@
 package io.cloudsoft.spark;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.reflect.TypeToken;
 
@@ -27,7 +28,14 @@ public interface SparkCluster extends DynamicCluster {
             new TypeToken<List<Entity>>() {
             }, "spark.cluster.nodes", "List of all active Spark nodes in the cluster");
 
+    //required to launch Spark workers
+    AttributeSensor<AtomicLong> SPARK_WORKER_INSTANCE_ID_TRACKER = Sensors.newSensor(new TypeToken<AtomicLong>() {
+    }, "spark.workerInstanceIdTracker", "An incrementing worker id to identify Spark workers instances in the cluster");
+
     @Effector(description = "submit a Spark app to the cluster")
     public void submitSparkApplication(@EffectorParam(name = "masterConnectionUrl") String masterNodeConnectionUrl);
+
+    @Effector(description = "adds worker instances to this spark cluster members in round robin")
+    public void addSparkWorkerInstances(@EffectorParam(name = "noOfInstances") Integer numberOfInstances);
 
 }
