@@ -19,7 +19,7 @@ public class SparkTest extends AbstractApplication {
     public void init() {
         addChild(EntitySpec.create(SparkCluster.class)
                 .configure(SparkCluster.INITIAL_SIZE, 2)
-                .configure(SparkCluster.MEMBER_SPEC, EntitySpec.create(SparkNode.class).configure(SparkNode.SPARK_WORKER_MEMORY, "100m")));
+                .configure(SparkCluster.MEMBER_SPEC, EntitySpec.create(SparkNode.class).configure(SparkNode.SPARK_WORKER_MEMORY, "1000m")));
     }
 
     public static void main(String[] argv) {

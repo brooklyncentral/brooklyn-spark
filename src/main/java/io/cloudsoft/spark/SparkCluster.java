@@ -38,4 +38,6 @@ public interface SparkCluster extends DynamicCluster {
     @Effector(description = "adds worker instances to this spark cluster members in round robin")
     public void addSparkWorkerInstances(@EffectorParam(name = "noOfInstances") Integer numberOfInstances);
 
+    @Effector(description = "run JavaSparkPi demo")
+    public void runJavaSparkPiDemo();
 }

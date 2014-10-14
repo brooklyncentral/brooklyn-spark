@@ -112,6 +112,8 @@ public interface SparkNode extends SoftwareProcess {
 
     public String getHostname();
 
+    public String getPidDir();
+
     public Integer getSparkWorkerCores();
 
     public String getSparkWorkerMemory();

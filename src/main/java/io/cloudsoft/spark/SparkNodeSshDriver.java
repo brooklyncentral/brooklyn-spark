@@ -134,6 +134,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
                 ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, (SparkNode) entity);
                 ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_NODE_CONNECTION_URL, sparkConnectionUrl);
+                entity.setDisplayName(format("Spark Master Node:%s", entity.getId()));
             } else {
                 //wait for the master to be initialized before joining the cluster
                 entity.setAttribute(SparkNode.IS_MASTER, Boolean.FALSE);
@@ -155,6 +156,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 } else {
                     getInstanceIds().add(workerInstanceId);
                 }
+                entity.setDisplayName(format("Spark Worker Node:%s", entity.getId()));
             }
         }
     }
@@ -168,18 +170,29 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
 
     @Override
     public void stop() {
+        List<Long> listOfInstanceIds = getInstanceIds();
+        ImmutableList.Builder<String> killCmdsBuilder = ImmutableList.<String>builder();
         if (isMaster()) {
-            newScript(STOPPING)
-                    .body.append(format("%s/spark-daemon.sh stop org.apache.spark.deploy.master.Master 1", sparkHome))
-                    .execute();
+            killCmdsBuilder.add(format("%s/spark-daemon.sh stop org.apache.spark.deploy.master.Master 1", sparkHome));
+            //kill worker instances residing on the master node
+            if (!listOfInstanceIds.isEmpty()) {
+                for (Long id : listOfInstanceIds) {
+                    killCmdsBuilder.add(format("kill -9 `cat %s/spark-%s-org.apache.spark.deploy.worker.Worker-%s.pid`", entity.getConfig(SparkNode.SPARK_PID_DIR), getMachine().getUser(), id));
+                }
+            }
+
         } else {
-            newScript(STOPPING)
-                    .body.append(format("%s/spark-daemon.sh stop org.apache.spark.deploy.master.Master 1", sparkHome))
-                    .execute();
-
+            //kill all instances
+            if (!listOfInstanceIds.isEmpty()) {
+                for (Long id : listOfInstanceIds) {
+                    killCmdsBuilder.add(format("kill -9 `cat %s/spark-%s-org.apache.spark.deploy.worker.Worker-%s.pid`", entity.getConfig(SparkNode.SPARK_PID_DIR), getMachine().getUser(), id));
+                }
+            }
         }
+        newScript(STOPPING)
+                .body.append(killCmdsBuilder.build())
+                .execute();
     }
-
 
     @Override
     public void addSparkWorkerInstances(Integer noOfInstances) {
@@ -259,7 +272,8 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
     }
 
     private List<Long> getInstanceIds() {
-        return entity.getAttribute(SparkNode.WORKER_INSTANCE_IDS);
+        return Optional.fromNullable(entity.getAttribute(SparkNode.WORKER_INSTANCE_IDS))
+                .or(Lists.<Long>newArrayList());
     }
 
     private boolean isMasterInitialized() {

@@ -63,17 +63,11 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
                             .onSuccess(HttpValueFunctions.responseCodeEquals(200))
                             .onFailureOrException(Functions.constant(false)))
                     .poll(getSensorFromNodeStat(SparkNode.SPARK_STATUS_SENSOR, "status"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_SENSOR, "cores"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_USED_SENSOR, "coresused"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_SENSOR, "memory"))
+                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_USED_SENSOR, "memoryused"))
                     .build();
-
-//        if (isMaster()) {
-//        } else {
-//            httpFeedBuilder.poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_ID_SENSOR, "id"))
-//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_SENSOR, "cores"))
-//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_CORES_USED_SENSOR, "coresused"))
-//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_SENSOR, "memory"))
-//                    .poll(getSensorFromNodeStat(SparkNode.SPARK_WORKER_MEMORY_USED_SENSOR, "memoryused"));
-//        }
-//        httpFeed = httpFeedBuilder.build();
         }
     }
 
@@ -84,7 +78,6 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
             httpFeed.stop();
         }
     }
-
 
     @Override
     public void addSparkWorkerInstances(Integer numberOfInstances) {
@@ -124,6 +117,11 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
     @Override
     public String getHostname() {
         return getAttribute(HOSTNAME);
+    }
+
+    @Override
+    public String getPidDir() {
+        return getConfig(SparkNode.SPARK_PID_DIR);
     }
 
     @Override

@@ -1,5 +1,7 @@
 package io.cloudsoft.spark;
 
+import static java.lang.String.format;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
@@ -13,28 +15,25 @@ import com.google.common.collect.Iterables;
 
 import brooklyn.entity.Entity;
 import brooklyn.entity.basic.Entities;
-import brooklyn.entity.basic.EntityInternal;
 import brooklyn.entity.group.DynamicClusterImpl;
-import brooklyn.entity.group.StopFailedRuntimeException;
 import brooklyn.entity.proxying.EntitySpec;
-import brooklyn.entity.trait.MemberReplaceable;
+import brooklyn.entity.software.SshEffectorTasks;
 import brooklyn.event.SensorEvent;
 import brooklyn.event.SensorEventListener;
 import brooklyn.location.Location;
-import brooklyn.policy.ha.ServiceReplacer;
-import brooklyn.util.collections.MutableMap;
-import brooklyn.util.exceptions.Exceptions;
+import brooklyn.location.basic.SshMachineLocation;
+import brooklyn.util.guava.Maybe;
+import brooklyn.util.task.DynamicTasks;
 
 public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster {
     private static final Logger log = LoggerFactory.getLogger(SparkClusterImpl.class);
 
     @Override
     public void init() {
-
+        setDisplayName(format("Spark Cluster:%s", getId()));
         if (!Optional.fromNullable(getAttribute(SparkCluster.SPARK_WORKER_INSTANCE_ID_TRACKER)).isPresent()) {
             setAttribute(SPARK_WORKER_INSTANCE_ID_TRACKER, new AtomicLong(0));
         }
-
         super.init();
     }
 
@@ -80,6 +79,21 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
         }
     }
 
+    @Override
+    public void runJavaSparkPiDemo() {
+        if (Maybe.fromNullable(getAttribute(SERVICE_UP)).or(Boolean.FALSE).equals(Boolean.TRUE)) {
+            Entity masterNode = getMasterNode();
+            SshMachineLocation loc = (SshMachineLocation) Iterables.find(masterNode.getLocations(), Predicates.instanceOf(SshMachineLocation.class));
+            String sparkHome = masterNode.getAttribute(SparkNode.SPARK_HOME_DIR);
+            String sparkMasterUrl = masterNode.getAttribute(SparkNode.MASTER_CONNECTION_URL);
+
+            DynamicTasks.queueIfPossible(new SshEffectorTasks.SshPutEffectorTaskFactory(loc, format("%s/javaSparkPi.jar", sparkHome))
+                    .contents(this.getClass().getResourceAsStream("/simple-project-1.0.jar")).newTask());
+
+            DynamicTasks.queueIfPossible(new SshEffectorTasks.SshEffectorTaskFactory(loc, format("%s/bin/spark-submit --class JavaSparkPi --master %s %s/javaSparkPi.jar", sparkHome, sparkMasterUrl, sparkHome)).newTask());
+        }
+    }
+
     private Entity getMasterNode() {
         return Optional.fromNullable(getAttribute(MASTER_SPARK_NODE)).get();
     }
@@ -91,53 +105,4 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
     private Integer getMasterNodeServicePort() {
         return Optional.fromNullable(getAttribute(MASTER_NODE_SERVICE_PORT)).get();
     }
-
-    public static class SparkClusterResilliencePolicy extends ServiceReplacer {
-        @Override
-        protected synchronized void onDetectedFailure(SensorEvent<Object> event) {
-            final Entity failedEntity = event.getSource();
-            final Entity failedEntityCluster = failedEntity.getAttribute(SparkCluster.CLUSTER);
-            final Object reason = event.getValue();
-
-            if (isSuspended()) {
-                log.warn("ServiceReplacer suspended, so not acting on failure detected at " + failedEntity + " (" + reason + ", child of " + entity + ")");
-                return;
-            }
-
-//        if (super.isRepeatedlyFailingTooMuch()) {
-//            log.error("ServiceReplacer not acting on failure detected at "+failedEntity+" ("+reason+", child of "+entity+"), because too many recent replacement failures");
-//            return;
-//        }
-
-            log.warn("ServiceReplacer acting on failure detected at " + failedEntity + " (" + reason + ", child of " + entity + ")");
-            ((EntityInternal) entity).getManagementSupport().getExecutionContext().submit(MutableMap.of(), new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-
-                        if (Optional.fromNullable(entity.getAttribute(SparkNode.IS_MASTER)).or(false)) {
-                            log.info("----- MASTER IS DOWN! SHUTTING DOWN ALL WORKER NODES -----");
-                            log.info("reconfiguring the Spark Cluster...");
-
-                            Entities.invokeEffectorWithArgs(entity, entity, MemberReplaceable.REPLACE_MEMBER, failedEntity.getId()).get();
-                            consecutiveReplacementFailureTimes.clear();
-
-                            ((EntityInternal) failedEntityCluster).setAttribute(SparkCluster.FIRST, entity);
-                        } else {
-
-                        }
-                    } catch (Exception e) {
-                        if (Exceptions.getFirstThrowableOfType(e, StopFailedRuntimeException.class) != null) {
-                            log.info("ServiceReplacer: ignoring error reported from stopping failed node " + failedEntity);
-                            return;
-                        }
-                        onReplacementFailed("Replace failure (error " + e + ") at " + entity + ": " + reason);
-                    }
-                }
-            });
-        }
-    }
-
-    ;
 }
