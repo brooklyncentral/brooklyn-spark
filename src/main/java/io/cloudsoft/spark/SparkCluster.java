@@ -1,6 +1,7 @@
 package io.cloudsoft.spark;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.reflect.TypeToken;
@@ -16,6 +17,7 @@ import brooklyn.event.basic.Sensors;
 @ImplementedBy(SparkClusterImpl.class)
 public interface SparkCluster extends DynamicCluster {
 
+    AttributeSensor<AtomicBoolean> RECONFIGURING_SPARK_CLUSTER = Sensors.newSensor(AtomicBoolean.class, "spark.cluster.reconfiguringSparkCluster", "Is the cluster being reconfigured");
     AttributeSensor<String> MASTER_NODE_HOSTNAME = Sensors.newStringSensor("spark.cluster.masterNodeHostname", "The hostname of the master node in the cluster");
     AttributeSensor<String> MASTER_NODE_CONNECTION_URL = Sensors.newStringSensor("spark.cluster.masterNodeConnectionUrl", "The connection url of the master node in the cluster that workers use to join");
 
@@ -29,8 +31,7 @@ public interface SparkCluster extends DynamicCluster {
             }, "spark.cluster.nodes", "List of all active Spark nodes in the cluster");
 
     //required to launch Spark workers
-    AttributeSensor<AtomicLong> SPARK_WORKER_INSTANCE_ID_TRACKER = Sensors.newSensor(new TypeToken<AtomicLong>() {
-    }, "spark.workerInstanceIdTracker", "An incrementing worker id to identify Spark workers instances in the cluster");
+    AttributeSensor<AtomicLong> SPARK_WORKER_INSTANCE_ID_TRACKER = Sensors.newSensor(AtomicLong.class, "spark.workerInstanceIdTracker", "An incrementing worker id to identify Spark workers instances in the cluster");
 
     @Effector(description = "submit a Spark app to the cluster")
     public void submitSparkApplication(@EffectorParam(name = "masterConnectionUrl") String masterNodeConnectionUrl);

@@ -84,7 +84,6 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
         sparkHome = Os.mergePathsUnix(getRunDir(), format("spark-%s", sparkVersion));
         entity.setAttribute(SparkNode.SPARK_HOME_DIR, sparkHome);
 
-
         List<String> commands = ImmutableList.<String>builder()
                 .add(BashCommands.sudo("mkdir -p " + scalaHome))
                 .add("mkdir -p " + sparkHome)
@@ -163,7 +162,6 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
 
     @Override
     public boolean isRunning() {
-
         //no CLI tools to check if the Spark node is running through SSH. See connectSensors() in SparkNodeImpl for http polling for SERVICE_UP.
         return true;
     }
@@ -180,7 +178,6 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                     killCmdsBuilder.add(format("kill -9 `cat %s/spark-%s-org.apache.spark.deploy.worker.Worker-%s.pid`", entity.getConfig(SparkNode.SPARK_PID_DIR), getMachine().getUser(), id));
                 }
             }
-
         } else {
             //kill all instances
             if (!listOfInstanceIds.isEmpty()) {
@@ -211,18 +208,18 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                     getInstanceIds().add(workerInstanceId);
                 }
             }
-
             List<String> cmds = cmdsBuilder.build();
 
             newScript("addSparkWorkerInstances")
                     .body.append(cmds)
                     .execute();
-
         }
     }
 
     @Override
     public void startMasterNode() {
+
+        //starts a master node process on the node
         entity.getAttribute(SparkNode.SUBNET_HOSTNAME);
         ScriptHelper internalHostScript = newScript("getInternalHostname")
                 .body.append("hostname").gatherOutput(true);
@@ -242,15 +239,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
         entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
         ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, (SparkNode) entity);
         ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_NODE_CONNECTION_URL, sparkConnectionUrl);
-    }
-
-    @Override
-    public void submitSparkApp(String appName) {
-        if (isMaster() && entity.getAttribute(SparkCluster.CLUSTER).getAttribute(SparkCluster.SERVICE_UP)) {
-            newScript("submitJar")
-                    .body.append()
-                    .execute();
-        }
+        entity.setDisplayName(format("Spark Master Node:%s", entity.getId()));
     }
 
     @Override

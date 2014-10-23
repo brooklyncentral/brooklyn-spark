@@ -91,16 +91,12 @@ public interface SparkNode extends SoftwareProcess {
 
     public static final MethodEffector<Void> ADD_SPARK_WORKER_INSTANCES = new MethodEffector<Void>(SparkNode.class, "addSparkWorkerInstances");
     public static final MethodEffector<Void> START_MASTER_NODE = new MethodEffector<Void>(SparkNode.class, "startMasterNode");
-    public static final MethodEffector<Void> SUBMIT_SPARK_APP = new MethodEffector<Void>(SparkNode.class, "submitSparkApp");
 
     @Effector(description = "add this worker instances to this spark node")
     public void addSparkWorkerInstances(@EffectorParam(name = "noOfInstances") Integer numberOfInstances);
 
     @Effector(description = "initialize master node if this node is promoted to be the spark master node")
     public void startMasterNode();
-
-    @Effector(description = "submit app to Spark")
-    public void submitSparkApp(@EffectorParam(name = "appName") String sparkJarLocation);
 
     public Integer getMasterServicePort();
 

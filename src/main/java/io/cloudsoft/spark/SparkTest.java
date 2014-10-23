@@ -13,13 +13,12 @@ import brooklyn.util.CommandLineUtil;
 
 public class SparkTest extends AbstractApplication {
 
-    public static String DEFAULT_LOCATION_SPEC = "AWS Virginia (us-east-1)";
+    public static String DEFAULT_LOCATION_SPEC = "jclouds:softlayer:ams01";
 
     @Override
     public void init() {
         addChild(EntitySpec.create(SparkCluster.class)
-                .configure(SparkCluster.INITIAL_SIZE, 2)
-                .configure(SparkCluster.MEMBER_SPEC, EntitySpec.create(SparkNode.class).configure(SparkNode.SPARK_WORKER_MEMORY, "1000m")));
+                .configure(SparkCluster.INITIAL_SIZE, 3));
     }
 
     public static void main(String[] argv) {
