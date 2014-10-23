@@ -90,11 +90,6 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
     }
 
     @Override
-    public void submitSparkApp(String sparkJarLocation) {
-        getDriver().submitSparkApp(sparkJarLocation);
-    }
-
-    @Override
     public Integer getMasterServicePort() {
         return getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT);
     }

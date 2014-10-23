@@ -4,6 +4,7 @@ import static java.lang.String.format;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
     @Override
     public void init() {
         setDisplayName(format("Spark Cluster:%s", getId()));
+        setAttribute(RECONFIGURING_SPARK_CLUSTER, new AtomicBoolean(false));
         if (!Optional.fromNullable(getAttribute(SparkCluster.SPARK_WORKER_INSTANCE_ID_TRACKER)).isPresent()) {
             setAttribute(SPARK_WORKER_INSTANCE_ID_TRACKER, new AtomicLong(0));
         }
@@ -50,16 +52,22 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
 
     protected void connectSensors() {
         subscribeToMembers(this, SparkNode.SERVICE_UP, new SensorEventListener() {
-
+            //TODO: add a reconfiguration policy if master fails.
             @Override
             public void onEvent(SensorEvent sensorEvent) {
                 Entity node = sensorEvent.getSource();
                 Boolean serviceUp = (Boolean) sensorEvent.getValue();
                 if (node.getAttribute(SparkNode.IS_MASTER) && serviceUp.equals(Boolean.FALSE)) {
-                    log.info("Master node is Down, reconfiguring the spark cluster");
+                    SparkClusterImpl.this.getAttribute(SparkCluster.RECONFIGURING_SPARK_CLUSTER).set(true);
+//                    log.info("Master node is Down, reconfiguring the Spark cluster");
+//                    SparkClusterImpl.this.getAttribute(RECONFIGURING_SPARK_CLUSTER).set(true);
+//                    log.info("Stopping all Spark instances");
+                    //Entities.invokeEffector(SparkClusterImpl.this, SparkClusterImpl.this.getMembers(), SparkNode.STOP);
                 }
             }
         });
+
+
     }
 
     @Override
@@ -105,4 +113,6 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
     private Integer getMasterNodeServicePort() {
         return Optional.fromNullable(getAttribute(MASTER_NODE_SERVICE_PORT)).get();
     }
+
+
 }
