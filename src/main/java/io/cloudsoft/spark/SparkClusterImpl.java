@@ -4,24 +4,26 @@ import static java.lang.String.format;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 
+import brooklyn.config.render.RendererHints;
+import brooklyn.enricher.Enrichers;
 import brooklyn.entity.Entity;
+import brooklyn.entity.basic.Attributes;
 import brooklyn.entity.basic.Entities;
 import brooklyn.entity.group.DynamicClusterImpl;
 import brooklyn.entity.proxying.EntitySpec;
 import brooklyn.entity.software.SshEffectorTasks;
-import brooklyn.event.SensorEvent;
-import brooklyn.event.SensorEventListener;
 import brooklyn.location.Location;
+import brooklyn.location.basic.Machines;
 import brooklyn.location.basic.SshMachineLocation;
 import brooklyn.util.guava.Maybe;
 import brooklyn.util.task.DynamicTasks;
@@ -29,10 +31,14 @@ import brooklyn.util.task.DynamicTasks;
 public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster {
     private static final Logger log = LoggerFactory.getLogger(SparkClusterImpl.class);
 
+    static {
+        RendererHints.register(SparkCluster.MASTER_NODE_WEB_CONSOLE_URL, new RendererHints.NamedActionWithUrl("Open"));
+    }
+
     @Override
     public void init() {
         setDisplayName(format("Spark Cluster:%s", getId()));
-        setAttribute(RECONFIGURING_SPARK_CLUSTER, new AtomicBoolean(false));
+
         if (!Optional.fromNullable(getAttribute(SparkCluster.SPARK_WORKER_INSTANCE_ID_TRACKER)).isPresent()) {
             setAttribute(SPARK_WORKER_INSTANCE_ID_TRACKER, new AtomicLong(0));
         }
@@ -50,26 +56,48 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
         connectSensors();
     }
 
+    @Override
+    protected void doStart() {
+        super.doStart();
+        log.info("Cluster:{} is initialized adding worker instances to each worker node", getId());
+        addSparkWorkerInstances(getConfig(INITIAL_SIZE) - 1);
+
+//        log.info("Cluster:{} is initialized running Java Pi Demo", getId());
+//        runJavaSparkPiDemo();
+    }
+
     protected void connectSensors() {
-        subscribeToMembers(this, SparkNode.SERVICE_UP, new SensorEventListener() {
-            //TODO: add a reconfiguration policy if master fails.
-            @Override
-            public void onEvent(SensorEvent sensorEvent) {
-                Entity node = sensorEvent.getSource();
-                Boolean serviceUp = (Boolean) sensorEvent.getValue();
-                if (node.getAttribute(SparkNode.IS_MASTER) && serviceUp.equals(Boolean.FALSE)) {
-                    SparkClusterImpl.this.getAttribute(SparkCluster.RECONFIGURING_SPARK_CLUSTER).set(true);
-//                    log.info("Master node is Down, reconfiguring the Spark cluster");
-//                    SparkClusterImpl.this.getAttribute(RECONFIGURING_SPARK_CLUSTER).set(true);
-//                    log.info("Stopping all Spark instances");
-                    //Entities.invokeEffector(SparkClusterImpl.this, SparkClusterImpl.this.getMembers(), SparkNode.STOP);
-                }
-            }
-        });
+
+        //TODO: add logic to flag the cluster unavailable if master node is down.
+        connectEnrichers();
+    }
+
+    protected void connectEnrichers() {
+
+        addEnricher(Enrichers.builder()
+                .transforming(SparkCluster.MASTER_SPARK_NODE)
+                .from(this)
+                .computing(new Function<Entity, String>() {
+
+                    @Override
+                    public String apply(Entity masterNode) {
+                        return "http://" + masterNode.getAttribute(Attributes.HOSTNAME) + ":"
+                                + masterNode.getAttribute(SparkNode.SPARK_MASTER_WEB_PORT);
+                    }
+                })
+                .publishing(SparkCluster.MASTER_NODE_WEB_CONSOLE_URL)
+                .build());
+
+        addEnricher(Enrichers.builder()
+                .propagating(SparkNode.MASTER_CONNECTION_URL)
+                .from(getAttribute(SparkCluster.MASTER_SPARK_NODE))
+                .build());
+
 
 
     }
 
+    //TODO: passing an application url to this effector submits it to the spark cluster.
     @Override
     public void submitSparkApplication(String masterNodeConnectionUrl) {
         getMasterNode();
@@ -91,7 +119,8 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
     public void runJavaSparkPiDemo() {
         if (Maybe.fromNullable(getAttribute(SERVICE_UP)).or(Boolean.FALSE).equals(Boolean.TRUE)) {
             Entity masterNode = getMasterNode();
-            SshMachineLocation loc = (SshMachineLocation) Iterables.find(masterNode.getLocations(), Predicates.instanceOf(SshMachineLocation.class));
+
+            SshMachineLocation loc = Machines.findUniqueSshMachineLocation(masterNode.getLocations()).get();
             String sparkHome = masterNode.getAttribute(SparkNode.SPARK_HOME_DIR);
             String sparkMasterUrl = masterNode.getAttribute(SparkNode.MASTER_CONNECTION_URL);
 

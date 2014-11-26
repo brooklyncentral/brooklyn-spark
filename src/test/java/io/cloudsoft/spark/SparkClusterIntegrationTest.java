@@ -44,12 +44,5 @@ public class SparkClusterIntegrationTest extends BrooklynAppLiveTestSupport {
         EntityTestUtils.assertAttributeEqualsEventually(sparkCluster, SparkCluster.GROUP_SIZE, 1);
         EntityTestUtils.assertAttributeEqualsEventually(node, SparkNode.SERVICE_UP, true);
 
-//        Entities.waitForServiceUp(sparkCluster, Duration.minutes(20));
-
-//        String sparkMasterUrl = node.getAttribute(SparkNode.MASTER_CONNECTION_URL);
-//        SparkConf conf = new SparkConf().setAppName("TestApp").setMaster(sparkMasterUrl);
-//        JavaSparkContext sc = new JavaSparkContext(conf);
-//
-//        Assert.assertEquals(sc.isLocal(), Boolean.TRUE);
     }
 }
