@@ -22,17 +22,13 @@ import brooklyn.entity.proxying.EntitySpec;
 import brooklyn.location.Location;
 import brooklyn.test.EntityTestUtils;
 
+@Test(groups = "Live")
 public class SparkClusterLiveTest extends BrooklynAppLiveTestSupport {
 
     private static final Logger log = LoggerFactory.getLogger(SparkClusterLiveTest.class);
 
     private String provider =
             "named:softlayer-ams01";
-//            "aws-ec2:eu-west-1";
-//            "rackspace-cloudservers-uk";
-//            "named:hpcloud-compute-at";
-//            "localhost";
-//            "jcloudsByon:(provider=\"aws-ec2\",region=\"us-east-1\",user=\"aled\",hosts=\"i-6f374743,i-35324219,i-1135453d\")";
 
     protected Location testLocation;
     protected SparkCluster cluster;

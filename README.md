@@ -1,7 +1,7 @@
 Brooklyn Apache Spark Cluster
 =======
 
-([Apache Spark](https://spark.apache.org/)) is an engine for processing large datasets (big data). Spark has the advantage of fast data processing using in-memory computations and runs map reduce jobs much faster than Hadoop.
+[Apache Spark](https://spark.apache.org/) is an engine for processing large datasets (big data). Spark has the advantage of fast data processing using in-memory computations and runs map reduce jobs much faster than Hadoop.
 
 This repository contains the Apache Spark Brooklyn entity for deploying a Spark cluster with a master and worker nodes. The Apache Spark cluster will be monitored and managed by [Apache Brooklyn](https://brooklyn.incubator.apache.org/).
 

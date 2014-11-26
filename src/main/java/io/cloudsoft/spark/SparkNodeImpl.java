@@ -1,5 +1,7 @@
 package io.cloudsoft.spark;
 
+import static java.lang.String.format;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,6 +9,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
+import brooklyn.entity.basic.EntityInternal;
 import brooklyn.entity.basic.SoftwareProcessImpl;
 import brooklyn.event.AttributeSensor;
 import brooklyn.event.feed.http.HttpFeed;
@@ -45,8 +48,9 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
         super.connectSensors();
         connectServiceUpIsRunning();
 
+        //TODO: add sensors for worker nodes
         HostAndPort hp = null;
-        if (isMaster()) {
+        if (getAttribute(IS_MASTER)) {
             Integer masterWebPort = getAttribute(SparkNode.SPARK_MASTER_WEB_PORT);
             Preconditions.checkNotNull(masterWebPort, "WEBUI Port is not set for %s", this);
             hp = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, masterWebPort);
@@ -71,6 +75,20 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
         }
     }
 
+    @Override
+    protected void postStart() {
+        super.postStart();
+        if (getAttribute(IS_MASTER)) {
+            setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
+            ((EntityInternal) getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, this);
+
+            setDisplayName(format("Spark Master Node:%s", getId()));
+        } else {
+            setDisplayName(format("Spark Worker Node:%s", getId()));
+        }
+
+    }
+
     public void disconnectSensors() {
         super.disconnectSensors();
         disconnectServiceUpIsRunning();
@@ -82,11 +100,6 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
     @Override
     public void addSparkWorkerInstances(Integer numberOfInstances) {
         getDriver().addSparkWorkerInstances(numberOfInstances);
-    }
-
-    @Override
-    public void startMasterNode() {
-        getDriver().startMasterNode();
     }
 
     @Override
@@ -106,7 +119,7 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
 
     @Override
     public Integer getWorkerServicePort() {
-        return null;
+        return getAttribute(SparkNode.SPARK_WORKER_SERVICE_PORT);
     }
 
     @Override
@@ -134,7 +147,4 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
         return getAttribute(SparkNode.SUBNET_ADDRESS);
     }
 
-    private boolean isMaster() {
-        return getAttribute(IS_MASTER) != null ? getAttribute(IS_MASTER) : false;
-    }
 }

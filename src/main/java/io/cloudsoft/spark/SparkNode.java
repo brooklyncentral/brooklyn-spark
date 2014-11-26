@@ -6,6 +6,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.TypeToken;
 
+import brooklyn.catalog.Catalog;
 import brooklyn.config.ConfigKey;
 import brooklyn.entity.annotation.Effector;
 import brooklyn.entity.annotation.EffectorParam;
@@ -20,9 +21,12 @@ import brooklyn.event.basic.Sensors;
 import brooklyn.location.basic.PortRanges;
 import brooklyn.util.flags.SetFromFlag;
 
+@Catalog(name = "Apache Spark Node", description = "Apache Spark is an engine for processing large datasets. First node in the cluster" +
+        "will be selected as the Master node while the others are the Spark worker nodes")
 @ImplementedBy(SparkNodeImpl.class)
 public interface SparkNode extends SoftwareProcess {
 
+    //TODO: add the different builds for Spark and their download Urls (Hadoop2, Mesos, ..) Some might need a license.
     @SetFromFlag("downloadUrl")
     BasicAttributeSensorAndConfigKey<String> DOWNLOAD_URL = new BasicAttributeSensorAndConfigKey<String>(
             SoftwareProcess.DOWNLOAD_URL, "http://d3kbcqa49mib13.cloudfront.net/spark-${version}-bin-hadoop1.tgz");
@@ -83,20 +87,17 @@ public interface SparkNode extends SoftwareProcess {
 
     //TODO: aggregate the sensors to include all the current instances in the cluster.
     AttributeSensor<String> SPARK_WORKER_ID_SENSOR = Sensors.newStringSensor("spark.workerId", "The assigned worker Id by the Spark cluster");
-    AttributeSensor<Integer> SPARK_WORKER_CORES_SENSOR = Sensors.newIntegerSensor("spark.workerCores", "Number of cores available for the worker");
+    AttributeSensor<Integer> SPARK_WORKER_CORES_SENSOR = Sensors.newIntegerSensor("spark.workerCoresSensor", "Number of cores available for the worker");
     AttributeSensor<Integer> SPARK_WORKER_CORES_USED_SENSOR = Sensors.newIntegerSensor("spark.workerCoresUsed", "Number of cores used in the worker");
     AttributeSensor<Integer> SPARK_WORKER_MEMORY_SENSOR = Sensors.newIntegerSensor("spark.workerMemory", "Amount of memory available in the worker");
     AttributeSensor<Integer> SPARK_WORKER_MEMORY_USED_SENSOR = Sensors.newIntegerSensor("spark.workerMemoryUsed", "Amount of memory used by worker");
     AttributeSensor<String> SPARK_STATUS_SENSOR = Sensors.newStringSensor("spark.status", "Status of the Spark Cluster");
+    AttributeSensor<String> PRIVATE_HOSTNAME = Sensors.newStringSensor("spark.privateHostname", "Hostname of this node as known on internal/private subnets");
 
     public static final MethodEffector<Void> ADD_SPARK_WORKER_INSTANCES = new MethodEffector<Void>(SparkNode.class, "addSparkWorkerInstances");
-    public static final MethodEffector<Void> START_MASTER_NODE = new MethodEffector<Void>(SparkNode.class, "startMasterNode");
 
-    @Effector(description = "add this worker instances to this spark node")
+    @Effector(description = "add a worker instance to this spark node")
     public void addSparkWorkerInstances(@EffectorParam(name = "noOfInstances") Integer numberOfInstances);
-
-    @Effector(description = "initialize master node if this node is promoted to be the spark master node")
-    public void startMasterNode();
 
     public Integer getMasterServicePort();
 

@@ -7,10 +7,24 @@
     <groupId>io.cloudsoft.spark</groupId>
     <artifactId>brooklyn-spark</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>Brooklyn Apache Spark</name>
+    <description>An Apache Brooklyn Deployment Entities for Apache Spark.</description>
+
+    <parent>
+        <groupId>org.apache.brooklyn</groupId>
+        <artifactId>brooklyn-downstream-parent</artifactId>
+        <version>0.7.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
 
     <properties>
+        <java.version>1.7</java.version>
         <brooklyn.version>0.7.0-SNAPSHOT</brooklyn.version>
+        <includedTestGroups/>
+        <excludedTestGroups>Integration,Live,WIP</excludedTestGroups>
     </properties>
+
 
     <dependencies>
         <dependency>
@@ -43,5 +57,138 @@
         </dependency>
 
     </dependencies>
+
+
+    <build>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+        </testResources>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.1</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>2.8.2</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>1.3.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>2.17</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>2.5</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>2.4.1</version>
+                    <configuration>
+                        <tarLongFileMode>gnu</tarLongFileMode>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>2.5</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.17</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-eclipse-plugin</artifactId>
+                    <version>2.9</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>1.5</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>2.9.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>2.3</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <properties>
+                        <property>
+                            <name>listener</name>
+                            <value>brooklyn.test.LoggingVerboseReporter</value>
+                        </property>
+                    </properties>
+                    <enableAssertions>true</enableAssertions>
+                    <groups>${includedTestGroups}</groups>
+                    <excludedGroups>${excludedTestGroups}</excludedGroups>
+                    <testFailureIgnore>false</testFailureIgnore>
+                    <systemPropertyVariables>
+                        <verbose>-1</verbose>
+                    </systemPropertyVariables>
+                    <printSummary>true</printSummary>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>Integration</id>
+            <properties>
+                <includedTestGroups>Integration</includedTestGroups>
+                <excludedTestGroups>Live,WIP</excludedTestGroups>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <executions>
+                            <execution>
+                                <id>run-tests</id>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <phase>integration-test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>Live</id>
+            <properties>
+                <includedTestGroups>Live</includedTestGroups>
+                <excludedTestGroups>Integration,WIP</excludedTestGroups>
+            </properties>
+        </profile>
+        <profile>
+            <id>WIP</id>
+            <properties>
+                <includedTestGroups>WIP</includedTestGroups>
+                <excludedTestGroups>Integration,Live</excludedTestGroups>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

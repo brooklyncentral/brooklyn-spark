@@ -24,13 +24,11 @@ import brooklyn.util.os.Os;
 import brooklyn.util.ssh.BashCommands;
 import brooklyn.util.task.DynamicTasks;
 import brooklyn.util.time.Duration;
-import brooklyn.util.time.Time;
 
 public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements SparkNodeDriver {
 
     private String scalaSaveAs;
     private String sparkSaveAs;
-    private String sparkHome;
 
     public SparkNodeSshDriver(final SparkNodeImpl entity, final SshMachineLocation machine) {
         super(entity, machine);
@@ -39,6 +37,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
     @Override
     public void preInstall() {
         //assign the first node in the cluster to be master if master hasn't been set yet.
+        //TODO: find a more dynamic way to set master (if init failed choose another node to be master).
         if (!Optional.fromNullable(entity.getAttribute(SparkNode.IS_MASTER)).isPresent()) {
             if (entity.getAttribute(SparkCluster.FIRST_MEMBER)) {
                 entity.setAttribute(SparkNode.IS_MASTER, Boolean.TRUE);
@@ -52,6 +51,14 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
 
     @Override
     public void install() {
+
+        ScriptHelper internalHostScript = newScript("getInternalHostname")
+                .body.append("hostname").gatherOutput(true);
+
+        internalHostScript.execute();
+        String internalHostname = internalHostScript.getResultStdout().split("\\n")[0];
+
+        entity.setAttribute(SparkNode.PRIVATE_HOSTNAME, internalHostname);
 
         List<String> urls = resolver.getTargets();
         sparkSaveAs = resolver.getFilename();
@@ -81,7 +88,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
         String scalaVersion = entity.getConfig(SparkNode.SCALA_VERSION);
         String sparkVersion = entity.getConfig(SparkNode.SUGGESTED_VERSION);
         String scalaHome = Os.mergePaths(getRunDir(), format("scala-%s", scalaVersion));
-        sparkHome = Os.mergePathsUnix(getRunDir(), format("spark-%s", sparkVersion));
+        String sparkHome = Os.mergePathsUnix(getRunDir(), format("spark-%s", sparkVersion));
         entity.setAttribute(SparkNode.SPARK_HOME_DIR, sparkHome);
 
         List<String> commands = ImmutableList.<String>builder()
@@ -94,6 +101,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
 
         newScript(CUSTOMIZING)
                 .body.append(commands)
+                .failOnNonZeroResultCode()
                 .execute();
 
         String metricsPropsTemplate = processTemplate(entity.getConfig(SparkNode.SPARK_METRICS_PROPS_TEMPLATE_URL));
@@ -114,30 +122,19 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
         if (entity.getAttribute(SparkCluster.CLUSTER_MEMBER)) {
             if (entity.getAttribute(SparkCluster.FIRST_MEMBER)) {
 
-                entity.getAttribute(SparkNode.SUBNET_HOSTNAME);
-                ScriptHelper internalHostScript = newScript("getInternalHostname")
-                        .body.append("hostname").gatherOutput(true);
+                //The internal ip address is required (this differs from cloud vendor to another).
+                //e.g. internal hostname for AWS, internal subnet address in softlayer.
 
-                internalHostScript.execute();
-                String internalHostname = internalHostScript.getResultStdout().split("\\n")[0];
+                String sparkConnectionUrl = format("spark://%s:%s", entity.getAttribute(SparkNode.PRIVATE_HOSTNAME),
+                        entity.getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT));
 
-                String sparkConnectionUrl = format("spark://%s:%s", internalHostname, entity.getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT));
                 entity.setAttribute(SparkNode.MASTER_CONNECTION_URL, sparkConnectionUrl);
 
                 newScript(LAUNCHING)
-                        .body.append(format("%s/sbin/start-master.sh", sparkHome))
+                        .body.append(format("%s/sbin/start-master.sh", getSparkHome()))
                         .execute();
 
-                //give time for master to start
-                Time.sleep(Duration.THIRTY_SECONDS);
-                entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
-                ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, (SparkNode) entity);
-                ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_NODE_CONNECTION_URL, sparkConnectionUrl);
-                entity.setDisplayName(format("Spark Master Node:%s", entity.getId()));
             } else {
-                //wait for the master to be initialized before joining the cluster
-                entity.setAttribute(SparkNode.IS_MASTER, Boolean.FALSE);
-
                 Entity masterNode = DependentConfiguration.waitInTaskForAttributeReady(entity.getAttribute(SparkCluster.CLUSTER), SparkCluster.MASTER_SPARK_NODE, Predicates.notNull());
 
                 Entities.waitForServiceUp(masterNode, Duration.ONE_HOUR);
@@ -145,8 +142,15 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
                 Long workerInstanceId = entity.getAttribute(SparkCluster.CLUSTER).getAttribute(SparkCluster.SPARK_WORKER_INSTANCE_ID_TRACKER).getAndIncrement();
 
+                String masterConnectionUrl = masterNode.getAttribute(SparkNode.MASTER_CONNECTION_URL);
+
+                DynamicTasks.queue(SshEffectorTasks.ssh(
+                        "echo " + masterNode.getAttribute(SparkNode.HOSTNAME) + "\t" + masterNode.getAttribute(SparkNode.PRIVATE_HOSTNAME) + " >> /etc/hosts"
+                )
+                        .runAsRoot()).block();
+
                 newScript(LAUNCHING)
-                        .body.append(format("%s/sbin/start-slave.sh %s %s 2>&1 &", sparkHome, workerInstanceId, getMasterConnectionUrl()))
+                        .body.append(format("%s/sbin/start-slave.sh %s %s 2>&1 &", getSparkHome(), workerInstanceId, masterConnectionUrl))
                         .execute();
 
                 if (!Optional.fromNullable(getInstanceIds()).isPresent()) {
@@ -155,7 +159,6 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 } else {
                     getInstanceIds().add(workerInstanceId);
                 }
-                entity.setDisplayName(format("Spark Worker Node:%s", entity.getId()));
             }
         }
     }
@@ -171,7 +174,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
         List<Long> listOfInstanceIds = getInstanceIds();
         ImmutableList.Builder<String> killCmdsBuilder = ImmutableList.<String>builder();
         if (isMaster()) {
-            killCmdsBuilder.add(format("%s/spark-daemon.sh stop org.apache.spark.deploy.master.Master 1", sparkHome));
+            killCmdsBuilder.add(format("%s/spark-daemon.sh stop org.apache.spark.deploy.master.Master 1", getSparkHome()));
             //kill worker instances residing on the master node
             if (!listOfInstanceIds.isEmpty()) {
                 for (Long id : listOfInstanceIds) {
@@ -194,12 +197,12 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
     @Override
     public void addSparkWorkerInstances(Integer noOfInstances) {
 
-        if (noOfInstances instanceof Integer && noOfInstances > 0 && isMasterInitialized()) {
+        if (isMasterInitialized()) {
             ImmutableList.Builder cmdsBuilder = ImmutableList.<String>builder();
 
             for (int i = 0; i < noOfInstances; i++) {
                 Long workerInstanceId = entity.getAttribute(SparkCluster.CLUSTER).getAttribute(SparkCluster.SPARK_WORKER_INSTANCE_ID_TRACKER).getAndIncrement();
-                cmdsBuilder.add(format("%s/sbin/start-slave.sh %s %s 2>&1 &", sparkHome, workerInstanceId, getMasterConnectionUrl()));
+                cmdsBuilder.add(format("%s/sbin/start-slave.sh %s %s 2>&1 &", getSparkHome(), workerInstanceId, getMasterConnectionUrl()));
 
                 if (!Optional.fromNullable(getInstanceIds()).isPresent()) {
                     entity.setAttribute(SparkNode.WORKER_INSTANCE_IDS, Lists.newArrayList(workerInstanceId));
@@ -213,38 +216,14 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
             newScript("addSparkWorkerInstances")
                     .body.append(cmds)
                     .execute();
+        } else {
+            log.warn("cannot add spark worker instances on entity:{}, if the Master node is not initialized", entity.getId());
         }
     }
 
     @Override
-    public void startMasterNode() {
-
-        //starts a master node process on the node
-        entity.getAttribute(SparkNode.SUBNET_HOSTNAME);
-        ScriptHelper internalHostScript = newScript("getInternalHostname")
-                .body.append("hostname").gatherOutput(true);
-
-        internalHostScript.execute();
-        String internalHostname = internalHostScript.getResultStdout().split("\\n")[0];
-
-        String sparkConnectionUrl = format("spark://%s:%s", internalHostname, entity.getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT));
-        entity.setAttribute(SparkNode.MASTER_CONNECTION_URL, sparkConnectionUrl);
-
-        newScript(LAUNCHING)
-                .body.append(format("%s/sbin/start-master.sh", sparkHome))
-                .execute();
-
-        //give time for master to start
-        Time.sleep(Duration.THIRTY_SECONDS);
-        entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
-        ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, (SparkNode) entity);
-        ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_NODE_CONNECTION_URL, sparkConnectionUrl);
-        entity.setDisplayName(format("Spark Master Node:%s", entity.getId()));
-    }
-
-    @Override
     public String getSparkHome() {
-        return Optional.fromNullable(sparkHome).or("");
+        return Optional.fromNullable(entity.getAttribute(SparkNode.SPARK_HOME_DIR)).or("");
     }
 
     private boolean isMaster() {
@@ -257,7 +236,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
 
     @Override
     protected String getLogFileLocation() {
-        return format("%s/logs/", sparkHome);
+        return format("%s/logs/", getSparkHome());
     }
 
     private List<Long> getInstanceIds() {
