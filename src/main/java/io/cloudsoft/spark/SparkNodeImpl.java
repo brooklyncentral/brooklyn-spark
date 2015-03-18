@@ -45,15 +45,12 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
         super.connectSensors();
         connectServiceUpIsRunning();
 
-        HostAndPort hp = null;
         if (isMaster()) {
-            Integer masterWebPort = getAttribute(SparkNode.SPARK_MASTER_WEB_PORT);
-            Preconditions.checkNotNull(masterWebPort, "WEBUI Port is not set for %s", this);
-            hp = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, masterWebPort);
+            HostAndPort master = BrooklynAccessUtils.getBrooklynAccessibleAddress(this, getMasterWebPort());
 
-
-            Preconditions.checkNotNull(hp, "Host and Port is not set for %s", this);
-            String webUrl = String.format("http://%s", hp.toString());
+            Preconditions.checkNotNull(master, "Host and Port is not set for %s", this);
+            String webUrl = String.format("http://%s", master.toString());
+            setAttribute(SPARK_NODE_URL, webUrl);
 
             httpFeed = HttpFeed.builder()
                     .entity(this)

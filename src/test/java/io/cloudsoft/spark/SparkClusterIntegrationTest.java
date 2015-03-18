@@ -13,6 +13,7 @@ import brooklyn.entity.proxying.EntitySpec;
 import brooklyn.location.Location;
 import brooklyn.test.EntityTestUtils;
 
+@Test(groups = "Integration")
 public class SparkClusterIntegrationTest extends BrooklynAppLiveTestSupport {
     protected Location testLocation;
     protected SparkCluster sparkCluster;
@@ -24,7 +25,6 @@ public class SparkClusterIntegrationTest extends BrooklynAppLiveTestSupport {
         testLocation = app.newLocalhostProvisioningLocation();
     }
 
-    @Test(groups = "Integration")
     public void testStartAndShutdownClusterSizeOne() throws Exception {
         EntitySpec<SparkCluster> spec = EntitySpec.create(SparkCluster.class)
                 .configure("initialSize", 1);

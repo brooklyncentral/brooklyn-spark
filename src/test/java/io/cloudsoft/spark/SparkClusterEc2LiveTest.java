@@ -4,6 +4,8 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import org.testng.annotations.Test;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -14,6 +16,7 @@ import brooklyn.entity.proxying.EntitySpec;
 import brooklyn.location.Location;
 import brooklyn.test.EntityTestUtils;
 
+@Test(groups="Live")
 public class SparkClusterEc2LiveTest extends AbstractEc2LiveTest {
 //    private static final Logger log = LoggerFactory.getLogger(SparkClusterEc2LiveTest.class);
 

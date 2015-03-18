@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.TypeToken;
 
 import brooklyn.config.ConfigKey;
+import brooklyn.config.render.RendererHints;
 import brooklyn.entity.annotation.Effector;
 import brooklyn.entity.annotation.EffectorParam;
 import brooklyn.entity.basic.ConfigKeys;
@@ -115,4 +116,14 @@ public interface SparkNode extends SoftwareProcess {
     public String getSparkWorkerMemory();
 
     public String getSubnetAddress();
+
+    AttributeSensor<String> SPARK_NODE_URL = SparkNodeUrl.SPARK_NODE_URL;
+
+    class SparkNodeUrl {
+        public static final AttributeSensor<String> SPARK_NODE_URL = Sensors.newStringSensor("spark.node.url", "URL");
+
+        static {
+            RendererHints.register(SPARK_NODE_URL, RendererHints.namedActionWithUrl());
+        }
+    }
 }
