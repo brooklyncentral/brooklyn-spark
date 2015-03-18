@@ -16,8 +16,8 @@ it and run it as usual.  For more information on IDE support, visit:
 
 ## Sample Blueprint
 
-Below is a sample YAML blueprint that can be used to deploy Apache Ambari
-to AWS, adding the list of services shown:
+Below is a sample YAML blueprint that can be used to deploy Apache Spark to SoftLayer, adding the list of services
+shown:
 
 ```yaml
 name: Spark Cluster Deployment
