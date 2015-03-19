@@ -79,6 +79,8 @@ public interface SparkNode extends SoftwareProcess {
     AttributeSensor<Boolean> IS_MASTER = Sensors.newBooleanSensor("spark.isMaster", "flag to determine if the current spark node is the master node for the cluster");
     AttributeSensor<Boolean> IS_MASTER_INITIALIZED = Sensors.newBooleanSensor("spark.isMasterInitialized", "flag to determine if the master node has been initialized");
     AttributeSensor<String> MASTER_CONNECTION_URL = Sensors.newStringSensor("spark.masterConnectionUrl", "url that is used by workers to connect to the masternode");
+    AttributeSensor<String> MASTER_FULL_HOSTNAME = Sensors.newStringSensor("spark.masterFullHostname", "short hostname at master");
+    AttributeSensor<String> MASTER_SHORT_HOSTNAME = Sensors.newStringSensor("spark.masterShortHostname", "full hostname at master");
     AttributeSensor<List<Long>> WORKER_INSTANCE_IDS = Sensors.newSensor(new TypeToken<List<Long>>() {
     }, "spark.wokerInstanceIds", "The Spark worker instances IDs initialized on this node");
 
