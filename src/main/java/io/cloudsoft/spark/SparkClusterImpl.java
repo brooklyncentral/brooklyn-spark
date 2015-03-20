@@ -98,7 +98,9 @@ public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster
             DynamicTasks.queueIfPossible(new SshEffectorTasks.SshPutEffectorTaskFactory(loc, format("%s/javaSparkPi.jar", sparkHome))
                     .contents(this.getClass().getResourceAsStream("/simple-project-1.0.jar")).newTask());
 
-            DynamicTasks.queueIfPossible(new SshEffectorTasks.SshEffectorTaskFactory(loc, format("%s/bin/spark-submit --class JavaSparkPi --master %s %s/javaSparkPi.jar", sparkHome, sparkMasterUrl, sparkHome)).newTask());
+            final String command = format("%s/bin/spark-submit --class JavaSparkPi --master %s %s/javaSparkPi.jar", sparkHome, sparkMasterUrl, sparkHome);
+            log.info("command: " + command);
+            DynamicTasks.queueIfPossible(new SshEffectorTasks.SshEffectorTaskFactory(loc, command).newTask());
         }
     }
 

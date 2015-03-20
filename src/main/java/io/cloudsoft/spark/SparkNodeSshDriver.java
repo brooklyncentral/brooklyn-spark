@@ -5,6 +5,12 @@ import static java.lang.String.format;
 import java.net.URI;
 import java.util.List;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+
 import brooklyn.entity.Entity;
 import brooklyn.entity.basic.Attributes;
 import brooklyn.entity.basic.Entities;
@@ -21,12 +27,6 @@ import brooklyn.util.ssh.BashCommands;
 import brooklyn.util.task.DynamicTasks;
 import brooklyn.util.time.Duration;
 import brooklyn.util.time.Time;
-
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements SparkNodeDriver {
 
@@ -122,7 +122,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 internalHostScriptFull.execute();
                 String internalHostnameFull = internalHostScriptFull.getResultStdout().split("\\n")[0];
                 entity.setAttribute(SparkNode.MASTER_FULL_HOSTNAME, internalHostnameFull);
-                
+
                 ScriptHelper internalHostScriptShort = newScript("getInternalHostnameShort")
                     .body.append("hostname").gatherOutput(true);
                 internalHostScriptShort.execute();
@@ -141,10 +141,10 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
                 ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, (SparkNode) entity);
                 ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_NODE_CONNECTION_URL, sparkConnectionUrl);
-                
+
                 entity.setAttribute(Attributes.MAIN_URI, URI.create("http://"+entity.getAttribute(Attributes.HOSTNAME)+":8080/"));
                 ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(Attributes.MAIN_URI, URI.create("http://"+entity.getAttribute(Attributes.HOSTNAME)+":8080/"));
-                
+
                 entity.setDisplayName(format("Spark Master Node:%s", entity.getId()));
             } else {
                 //wait for the master to be initialized before joining the cluster
@@ -161,13 +161,13 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                     .body.append("hostname -f").gatherOutput(true);
                 internalHostScriptFull.execute();
                 String internalHostnameFull = internalHostScriptFull.getResultStdout().split("\\n")[0];
-                
+
                 ScriptHelper internalHostScriptShort = newScript("getInternalHostnameShort")
                     .body.append("hostname").gatherOutput(true);
                 internalHostScriptShort.execute();
                 String internalHostnameShort = internalHostScriptShort.getResultStdout().split("\\n")[0];
 
-                String subnetAddress = entity.getAttribute(SparkNode.SUBNET_ADDRESS);
+                String subnetAddress = entity.getAttribute(Attributes.HOSTNAME);//entity.getAttribute(SparkNode.SUBNET_ADDRESS);
 
                 // update etc hosts on master
                 brooklyn.util.task.DynamicTasks.queue(brooklyn.entity.software.SshEffectorTasks.ssh("sudo sh -c '"
@@ -175,7 +175,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                     + ">> /etc/hosts'").machine(brooklyn.location.basic.Locations.findUniqueSshMachineLocation(masterNode.getLocations()).get()));
                 // and on worker to know of master
                 brooklyn.util.task.DynamicTasks.queue(brooklyn.entity.software.SshEffectorTasks.ssh("sudo sh -c '"
-                    + "echo "+masterNode.getAttribute(Attributes.SUBNET_ADDRESS)+" "+masterNode.getAttribute(SparkNode.MASTER_FULL_HOSTNAME)+" "+masterNode.getAttribute(SparkNode.MASTER_SHORT_HOSTNAME)+" "
+                    + "echo "+masterNode.getAttribute(Attributes.HOSTNAME)+" "+masterNode.getAttribute(SparkNode.MASTER_FULL_HOSTNAME)+" "+masterNode.getAttribute(SparkNode.MASTER_SHORT_HOSTNAME)+" "
                     + ">> /etc/hosts'"));
 
                 newScript(LAUNCHING)
@@ -254,14 +254,16 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
     public void startMasterNode() {
 
         //starts a master node process on the node
-        entity.getAttribute(SparkNode.SUBNET_HOSTNAME);
+
         ScriptHelper internalHostScript = newScript("getInternalHostname")
                 .body.append("hostname").gatherOutput(true);
 
         internalHostScript.execute();
         String internalHostname = internalHostScript.getResultStdout().split("\\n")[0];
 
-        String sparkConnectionUrl = format("spark://%s:%s", internalHostname, entity.getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT));
+        String sparkConnectionUrl = format("spark://%s:%s",
+                entity.getAttribute(SparkNode.HOSTNAME),
+                entity.getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT));
         entity.setAttribute(SparkNode.MASTER_CONNECTION_URL, sparkConnectionUrl);
 
         newScript(LAUNCHING)

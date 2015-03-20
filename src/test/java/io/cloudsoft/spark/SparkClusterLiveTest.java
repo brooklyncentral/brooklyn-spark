@@ -21,6 +21,7 @@ public class SparkClusterLiveTest extends BrooklynAppLiveTestSupport {
     private static final Logger log = LoggerFactory.getLogger(SparkClusterLiveTest.class);
 
     private String provider = "jclouds:softlayer:ams01";
+    //private String provider = "byon:(user=\"andrea\",hosts=\"37.58.126.5, 37.58.126.6\")";
 
     protected Location testLocation;
     protected SparkCluster cluster;
@@ -53,8 +54,6 @@ public class SparkClusterLiveTest extends BrooklynAppLiveTestSupport {
         EntityTestUtils.assertAttributeEqualsEventually(cluster, SparkCluster.GROUP_SIZE, 2);
         Entities.dumpInfo(app);
 
-        // Resize
-        cluster.resize(3);
-        Assert.assertEquals(cluster.getMembers().size(), 3, "members=" + cluster.getMembers());
+        cluster.runJavaSparkPiDemo();
     }
 }
