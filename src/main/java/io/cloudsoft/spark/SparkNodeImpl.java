@@ -127,6 +127,11 @@ public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
     }
 
     @Override
+    public String getAddress() {
+        return getAttribute(SparkNode.ADDRESS);
+    }
+
+    @Override
     public String getSubnetAddress() {
         return getAttribute(SparkNode.SUBNET_ADDRESS);
     }
