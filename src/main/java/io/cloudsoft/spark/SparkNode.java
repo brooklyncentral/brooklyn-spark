@@ -117,6 +117,8 @@ public interface SparkNode extends SoftwareProcess {
 
     public String getSparkWorkerMemory();
 
+    public String getAddress();
+
     public String getSubnetAddress();
 
     AttributeSensor<String> SPARK_NODE_URL = SparkNodeUrl.SPARK_NODE_URL;

@@ -20,6 +20,7 @@ import brooklyn.entity.drivers.downloads.DownloadResolver;
 import brooklyn.entity.java.JavaSoftwareProcessSshDriver;
 import brooklyn.entity.software.SshEffectorTasks;
 import brooklyn.event.basic.DependentConfiguration;
+import brooklyn.location.access.BrooklynAccessUtils;
 import brooklyn.location.basic.SshMachineLocation;
 import brooklyn.util.net.Urls;
 import brooklyn.util.os.Os;
@@ -117,6 +118,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
             if (entity.getAttribute(SparkCluster.FIRST_MEMBER)) {
 
                 // `hostname` reported on the box is not reliable, eg in SL, so force it in /etc/hosts
+                String hostname = BrooklynAccessUtils.resolvedAddressSupplier(getEntity(), getMachine(), getHostname()).get();
                 ScriptHelper internalHostScriptFull = newScript("getInternalHostnameFull")
                     .body.append("hostname -f").gatherOutput(true);
                 internalHostScriptFull.execute();
@@ -128,22 +130,23 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 internalHostScriptShort.execute();
                 String internalHostnameShort = internalHostScriptShort.getResultStdout().split("\\n")[0];
                 entity.setAttribute(SparkNode.MASTER_SHORT_HOSTNAME, internalHostnameShort);
-
-                String sparkConnectionUrl = format("spark://%s:%s", entity.getAttribute(Attributes.SUBNET_ADDRESS), entity.getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT));
+                String sparkConnectionUrl = format("spark://%s:%s", hostname, entity.getAttribute(SparkNode.SPARK_MASTER_SERVICE_PORT));
                 entity.setAttribute(SparkNode.MASTER_CONNECTION_URL, sparkConnectionUrl);
-
                 newScript(LAUNCHING)
-                        .body.append(format("export SPARK_MASTER_IP=%s ; %s/sbin/start-master.sh", entity.getAttribute(Attributes.SUBNET_ADDRESS), sparkHome))
+                        .body.append(format("export SPARK_PUBLIC_DNS=%s; export SPARK_MASTER_IP=%s ; " +
+                        "%s/sbin/start-master.sh", getAddress(), hostname, sparkHome))
+                        .failOnNonZeroResultCode()
                         .execute();
 
                 //give time for master to start
                 Time.sleep(Duration.THIRTY_SECONDS);
                 entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
-                ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, (SparkNode) entity);
+                ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, entity);
                 ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_NODE_CONNECTION_URL, sparkConnectionUrl);
 
-                entity.setAttribute(Attributes.MAIN_URI, URI.create("http://"+entity.getAttribute(Attributes.HOSTNAME)+":8080/"));
-                ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(Attributes.MAIN_URI, URI.create("http://"+entity.getAttribute(Attributes.HOSTNAME)+":8080/"));
+                entity.setAttribute(Attributes.MAIN_URI, URI.create("http://"+ getAddress() +":8080/"));
+                ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(Attributes.MAIN_URI, URI
+                        .create("http://" + getAddress() + ":8080/"));
 
                 entity.setDisplayName(format("Spark Master Node:%s", entity.getId()));
             } else {
@@ -168,19 +171,20 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 String internalHostnameShort = internalHostScriptShort.getResultStdout().split("\\n")[0];
 
                 String address = entity.getAttribute(Attributes.ADDRESS);
-
                 // update etc hosts on master
                 brooklyn.util.task.DynamicTasks.queue(brooklyn.entity.software.SshEffectorTasks.ssh("sudo sh -c '"
-                    + "echo "+address+" "+internalHostnameFull+" "+internalHostnameShort+" "
-                    + ">> /etc/hosts'").machine(brooklyn.location.basic.Locations.findUniqueSshMachineLocation(masterNode.getLocations()).get()));
+                        + "echo " + address + " " + internalHostnameFull + " " + internalHostnameShort + " "
+                        + ">> /etc/hosts'").machine(brooklyn.location.basic.Locations.findUniqueSshMachineLocation(masterNode.getLocations()).get()));
                 // and on worker to know of master
                 brooklyn.util.task.DynamicTasks.queue(brooklyn.entity.software.SshEffectorTasks.ssh("sudo sh -c '"
-                    + "echo "+masterNode.getAttribute(Attributes.ADDRESS)+" "+masterNode.getAttribute(SparkNode
-                        .MASTER_FULL_HOSTNAME)+" "+masterNode.getAttribute(SparkNode.MASTER_SHORT_HOSTNAME)+" "
-                    + ">> /etc/hosts'"));
+                        + "echo " + masterNode.getAttribute(Attributes.ADDRESS) + " " + masterNode.getAttribute(SparkNode
+                        .MASTER_FULL_HOSTNAME) + " " + masterNode.getAttribute(SparkNode.MASTER_SHORT_HOSTNAME) + " "
+                        + ">> /etc/hosts'"));
 
                 newScript(LAUNCHING)
-                        .body.append(format("%s/sbin/start-slave.sh %s %s 2>&1 &", sparkHome, workerInstanceId, getMasterConnectionUrl()))
+                        .body.append(format("export SPARK_PUBLIC_DNS=%s; %s/sbin/start-slave.sh %s %s 2>&1 &",
+                        address, sparkHome, workerInstanceId, getMasterConnectionUrl()))
+                        .failOnNonZeroResultCode()
                         .execute();
 
                 if (!Optional.fromNullable(getInstanceIds()).isPresent()) {
@@ -189,7 +193,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
                 } else {
                     getInstanceIds().add(workerInstanceId);
                 }
-                entity.setAttribute(Attributes.MAIN_URI, URI.create("http://"+entity.getAttribute(Attributes.HOSTNAME)+":8081/"));
+                entity.setAttribute(Attributes.MAIN_URI, URI.create("http://"+ getAddress() +":8081/"));
                 entity.setDisplayName(format("Spark Worker Node:%s", entity.getId()));
             }
         }

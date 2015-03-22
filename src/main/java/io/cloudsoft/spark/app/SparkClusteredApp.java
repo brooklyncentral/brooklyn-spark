@@ -14,7 +14,7 @@ public class SparkClusteredApp extends AbstractApplication implements StartableA
         setDisplayName("Apache Spark clustered (3-node) deployment");
 
         SparkCluster sparkCluster = addChild(EntitySpec.create(SparkCluster.class)
-                .configure(SparkCluster.INITIAL_SIZE, 2));
+                .configure(SparkCluster.INITIAL_SIZE, 3));
 
         addEnricher(Enrichers.builder()
                 .propagating(SparkCluster.MASTER_NODE_HOSTNAME)

@@ -21,7 +21,8 @@ public class SparkClusterLiveTest extends BrooklynAppLiveTestSupport {
     private static final Logger log = LoggerFactory.getLogger(SparkClusterLiveTest.class);
 
     private String provider = "jclouds:softlayer:ams01";
-    //private String provider = "byon:(user=\"andrea\",hosts=\"37.58.126.5, 37.58.126.6\")";
+    //private String provider = "byon:(user=\"andrea\",hosts=\"159.8.55.226, 159.8.55.228\")";
+    //private String provider = "aws-ec2-us-east-1";
 
     protected Location testLocation;
     protected SparkCluster cluster;

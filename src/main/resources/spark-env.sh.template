@@ -44,7 +44,7 @@
 
 export SPARK_MASTER_PORT=${entity.masterServicePort?c}
 export SPARK_MASTER_WEBUI_PORT=${entity.masterWebPort?c}
-export SPARK_PUBLIC_DNS=${entity.hostname}
+#export SPARK_PUBLIC_DNS=${entity.subnetAddress}
 export SPARK_WORKER_MEMORY=${entity.sparkWorkerMemory}
 export SPARK_WORKER_CORES=${entity.sparkWorkerCores?c}
 export SPARK_PID_DIR=${entity.pidDir}
