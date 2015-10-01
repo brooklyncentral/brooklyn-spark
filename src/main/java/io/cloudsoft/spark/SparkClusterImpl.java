@@ -14,17 +14,17 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 
-import brooklyn.entity.Entity;
-import brooklyn.entity.basic.Entities;
-import brooklyn.entity.group.DynamicClusterImpl;
-import brooklyn.entity.proxying.EntitySpec;
-import brooklyn.entity.software.SshEffectorTasks;
-import brooklyn.event.SensorEvent;
-import brooklyn.event.SensorEventListener;
-import brooklyn.location.Location;
-import brooklyn.location.basic.SshMachineLocation;
-import brooklyn.util.guava.Maybe;
-import brooklyn.util.task.DynamicTasks;
+import org.apache.brooklyn.api.entity.Entity;
+import org.apache.brooklyn.core.entity.Entities;
+import org.apache.brooklyn.entity.group.DynamicClusterImpl;
+import org.apache.brooklyn.api.entity.EntitySpec;
+import org.apache.brooklyn.core.effector.ssh.SshEffectorTasks;
+import org.apache.brooklyn.api.sensor.SensorEvent;
+import org.apache.brooklyn.api.sensor.SensorEventListener;
+import org.apache.brooklyn.api.location.Location;
+import org.apache.brooklyn.location.ssh.SshMachineLocation;
+import org.apache.brooklyn.util.guava.Maybe;
+import org.apache.brooklyn.util.core.task.DynamicTasks;
 
 public class SparkClusterImpl extends DynamicClusterImpl implements SparkCluster {
     private static final Logger log = LoggerFactory.getLogger(SparkClusterImpl.class);

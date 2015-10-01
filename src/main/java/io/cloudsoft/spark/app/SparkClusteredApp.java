@@ -1,9 +1,9 @@
 package io.cloudsoft.spark.app;
 
-import brooklyn.enricher.Enrichers;
-import brooklyn.entity.basic.AbstractApplication;
-import brooklyn.entity.basic.StartableApplication;
-import brooklyn.entity.proxying.EntitySpec;
+import org.apache.brooklyn.enricher.stock.Enrichers;
+import org.apache.brooklyn.core.entity.AbstractApplication;
+import org.apache.brooklyn.core.entity.StartableApplication;
+import org.apache.brooklyn.api.entity.EntitySpec;
 import io.cloudsoft.spark.SparkCluster;
 
 public class SparkClusteredApp extends AbstractApplication implements StartableApplication {

@@ -7,13 +7,13 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
-import brooklyn.entity.basic.SoftwareProcessImpl;
-import brooklyn.event.AttributeSensor;
-import brooklyn.event.feed.http.HttpFeed;
-import brooklyn.event.feed.http.HttpPollConfig;
-import brooklyn.event.feed.http.HttpValueFunctions;
-import brooklyn.location.access.BrooklynAccessUtils;
-import brooklyn.util.guava.TypeTokens;
+import org.apache.brooklyn.entity.software.base.SoftwareProcessImpl;
+import org.apache.brooklyn.api.sensor.AttributeSensor;
+import org.apache.brooklyn.feed.http.HttpFeed;
+import org.apache.brooklyn.feed.http.HttpPollConfig;
+import org.apache.brooklyn.feed.http.HttpValueFunctions;
+import org.apache.brooklyn.core.location.access.BrooklynAccessUtils;
+import org.apache.brooklyn.util.guava.TypeTokens;
 
 public class SparkNodeImpl extends SoftwareProcessImpl implements SparkNode {
 

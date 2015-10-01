@@ -1,17 +1,16 @@
 package io.cloudsoft.spark;
 
+import org.apache.brooklyn.api.entity.EntitySpec;
+import org.apache.brooklyn.api.location.Location;
+import org.apache.brooklyn.core.entity.Entities;
+import org.apache.brooklyn.core.test.BrooklynAppLiveTestSupport;
+import org.apache.brooklyn.test.EntityTestUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
-import brooklyn.entity.BrooklynAppLiveTestSupport;
-import brooklyn.entity.basic.Entities;
-import brooklyn.entity.proxying.EntitySpec;
-import brooklyn.location.Location;
-import brooklyn.test.EntityTestUtils;
 
 @Test(groups = "Integration")
 public class SparkClusterIntegrationTest extends BrooklynAppLiveTestSupport {
