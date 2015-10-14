@@ -1,6 +1,9 @@
 Brooklyn Apache Spark Cluster
 =======
 
+[![Build Status](https://api.travis-ci.org/brooklyncentral/brooklyn-spark.svg?branch=master)](https://travis-ci.org/brooklyncentral/brooklyn-spark)
+
+
 [Apache Spark](https://spark.apache.org/) is an engine for processing large datasets (big data). Spark has the
 advantage of fast data processing using in-memory computations and runs map reduce jobs much faster than Hadoop.
 
