@@ -6,13 +6,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.reflect.TypeToken;
 
-import brooklyn.entity.Entity;
-import brooklyn.entity.annotation.Effector;
-import brooklyn.entity.annotation.EffectorParam;
-import brooklyn.entity.group.DynamicCluster;
-import brooklyn.entity.proxying.ImplementedBy;
-import brooklyn.event.AttributeSensor;
-import brooklyn.event.basic.Sensors;
+import org.apache.brooklyn.api.entity.Entity;
+import org.apache.brooklyn.core.annotation.Effector;
+import org.apache.brooklyn.core.annotation.EffectorParam;
+import org.apache.brooklyn.entity.group.DynamicCluster;
+import org.apache.brooklyn.api.entity.ImplementedBy;
+import org.apache.brooklyn.api.sensor.AttributeSensor;
+import org.apache.brooklyn.core.sensor.Sensors;
 
 @ImplementedBy(SparkClusterImpl.class)
 public interface SparkCluster extends DynamicCluster {

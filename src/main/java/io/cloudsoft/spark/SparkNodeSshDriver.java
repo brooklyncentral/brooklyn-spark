@@ -5,29 +5,29 @@ import static java.lang.String.format;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.brooklyn.api.entity.Entity;
+import org.apache.brooklyn.api.entity.drivers.downloads.DownloadResolver;
+import org.apache.brooklyn.core.effector.ssh.SshEffectorTasks;
+import org.apache.brooklyn.core.entity.Attributes;
+import org.apache.brooklyn.core.entity.Entities;
+import org.apache.brooklyn.core.entity.EntityInternal;
+import org.apache.brooklyn.core.location.access.BrooklynAccessUtils;
+import org.apache.brooklyn.core.sensor.DependentConfiguration;
+import org.apache.brooklyn.entity.java.JavaSoftwareProcessSshDriver;
+import org.apache.brooklyn.entity.software.base.lifecycle.ScriptHelper;
+import org.apache.brooklyn.location.ssh.SshMachineLocation;
+import org.apache.brooklyn.util.core.task.DynamicTasks;
+import org.apache.brooklyn.util.net.Urls;
+import org.apache.brooklyn.util.os.Os;
+import org.apache.brooklyn.util.ssh.BashCommands;
+import org.apache.brooklyn.util.time.Duration;
+import org.apache.brooklyn.util.time.Time;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-
-import brooklyn.entity.Entity;
-import brooklyn.entity.basic.Attributes;
-import brooklyn.entity.basic.Entities;
-import brooklyn.entity.basic.EntityInternal;
-import brooklyn.entity.basic.lifecycle.ScriptHelper;
-import brooklyn.entity.drivers.downloads.DownloadResolver;
-import brooklyn.entity.java.JavaSoftwareProcessSshDriver;
-import brooklyn.entity.software.SshEffectorTasks;
-import brooklyn.event.basic.DependentConfiguration;
-import brooklyn.location.access.BrooklynAccessUtils;
-import brooklyn.location.basic.SshMachineLocation;
-import brooklyn.util.net.Urls;
-import brooklyn.util.os.Os;
-import brooklyn.util.ssh.BashCommands;
-import brooklyn.util.task.DynamicTasks;
-import brooklyn.util.time.Duration;
-import brooklyn.util.time.Time;
 
 public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements SparkNodeDriver {
 
@@ -172,11 +172,11 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
 
                 String address = entity.getAttribute(Attributes.ADDRESS);
                 // update etc hosts on master
-                brooklyn.util.task.DynamicTasks.queue(brooklyn.entity.software.SshEffectorTasks.ssh("sudo sh -c '"
+                org.apache.brooklyn.util.core.task.DynamicTasks.queue(org.apache.brooklyn.core.effector.ssh.SshEffectorTasks.ssh("sudo sh -c '"
                         + "echo " + address + " " + internalHostnameFull + " " + internalHostnameShort + " "
-                        + ">> /etc/hosts'").machine(brooklyn.location.basic.Locations.findUniqueSshMachineLocation(masterNode.getLocations()).get()));
+                        + ">> /etc/hosts'").machine(org.apache.brooklyn.core.location.Locations.findUniqueSshMachineLocation(masterNode.getLocations()).get()));
                 // and on worker to know of master
-                brooklyn.util.task.DynamicTasks.queue(brooklyn.entity.software.SshEffectorTasks.ssh("sudo sh -c '"
+                org.apache.brooklyn.util.core.task.DynamicTasks.queue(org.apache.brooklyn.core.effector.ssh.SshEffectorTasks.ssh("sudo sh -c '"
                         + "echo " + masterNode.getAttribute(Attributes.ADDRESS) + " " + masterNode.getAttribute(SparkNode
                         .MASTER_FULL_HOSTNAME) + " " + masterNode.getAttribute(SparkNode.MASTER_SHORT_HOSTNAME) + " "
                         + ">> /etc/hosts'"));
@@ -278,7 +278,7 @@ public class SparkNodeSshDriver extends JavaSoftwareProcessSshDriver implements 
         //give time for master to start
         Time.sleep(Duration.THIRTY_SECONDS);
         entity.setAttribute(SparkNode.IS_MASTER_INITIALIZED, Boolean.TRUE);
-        ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, (SparkNode) entity);
+        ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_SPARK_NODE, entity);
         ((EntityInternal) entity.getAttribute(SparkCluster.CLUSTER)).setAttribute(SparkCluster.MASTER_NODE_CONNECTION_URL, sparkConnectionUrl);
         entity.setDisplayName(format("Spark Master Node:%s", entity.getId()));
     }

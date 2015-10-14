@@ -6,20 +6,20 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.TypeToken;
 
-import brooklyn.config.ConfigKey;
-import brooklyn.config.render.RendererHints;
-import brooklyn.entity.annotation.Effector;
-import brooklyn.entity.annotation.EffectorParam;
-import brooklyn.entity.basic.ConfigKeys;
-import brooklyn.entity.basic.MethodEffector;
-import brooklyn.entity.basic.SoftwareProcess;
-import brooklyn.entity.proxying.ImplementedBy;
-import brooklyn.event.AttributeSensor;
-import brooklyn.event.basic.BasicAttributeSensorAndConfigKey;
-import brooklyn.event.basic.PortAttributeSensorAndConfigKey;
-import brooklyn.event.basic.Sensors;
-import brooklyn.location.basic.PortRanges;
-import brooklyn.util.flags.SetFromFlag;
+import org.apache.brooklyn.config.ConfigKey;
+import org.apache.brooklyn.core.config.render.RendererHints;
+import org.apache.brooklyn.core.annotation.Effector;
+import org.apache.brooklyn.core.annotation.EffectorParam;
+import org.apache.brooklyn.core.config.ConfigKeys;
+import org.apache.brooklyn.core.effector.MethodEffector;
+import org.apache.brooklyn.entity.software.base.SoftwareProcess;
+import org.apache.brooklyn.api.entity.ImplementedBy;
+import org.apache.brooklyn.api.sensor.AttributeSensor;
+import org.apache.brooklyn.core.sensor.BasicAttributeSensorAndConfigKey;
+import org.apache.brooklyn.core.sensor.PortAttributeSensorAndConfigKey;
+import org.apache.brooklyn.core.sensor.Sensors;
+import org.apache.brooklyn.core.location.PortRanges;
+import org.apache.brooklyn.util.core.flags.SetFromFlag;
 
 @ImplementedBy(SparkNodeImpl.class)
 public interface SparkNode extends SoftwareProcess {
