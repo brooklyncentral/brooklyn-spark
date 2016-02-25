@@ -1,0 +1,119 @@
+brooklyn.catalog:
+  version: 0.2
+  items:
+  - id: spark-node
+    description: A standalone Apache Spark node, master unless given a spark.master.url
+    item:
+      type: org.apache.brooklyn.entity.software.base.VanillaSoftwareProcess
+      name: Apache Spark Standalone Node
+      
+      install.command: |
+        # get java (and curl if missing, as in some crazy clouds)
+        sudo apt-get update
+        sudo apt-get install -y --allow-unauthenticated default-jre
+        [ -x curl ] || sudo apt-get install -y --allow-unauthenticated curl
+        
+        # if hostname is bogus then point it at localhost
+        ping -c 1 `hostname` || echo ${OWN_IP} `hostname` | sudo tee -a /etc/hosts
+        
+        # get spark
+        curl -o spark.tgz http://d3kbcqa49mib13.cloudfront.net/spark-1.6.0-bin-hadoop2.6.tgz
+      
+      customize.command: |
+        tar xvzf ${INSTALL_DIR}/spark.tgz
+
+      launch.command: |
+        cd spark-*
+        export SPARK_MASTER_PORT=${LOCAL_SPARK_PORT}
+        export SPARK_WORKER_PORT=${LOCAL_SPARK_PORT}
+        export SPARK_MASTER_WEBUI_PORT=${SPARK_WEBUI_PORT} 
+        export SPARK_WORKER_WEBUI_PORT=${SPARK_WEBUI_PORT}
+        [ -z "$SPARK_MASTER_URL" ] && sbin/start-master.sh || sbin/start-slave.sh ${SPARK_MASTER_URL}
+        
+      checkRunning.command: |
+        ps aux | grep java | grep org.apache.spark
+
+      stop.command: |
+        kill $(ps aux | grep java | grep org.apache.spark | awk '{print $2}')
+        
+      shell.env:
+        SPARK_MASTER_URL: $brooklyn:config("spark.master.url")
+        LOCAL_SPARK_PORT: $brooklyn:config("spark.port")
+        SPARK_WEBUI_PORT: $brooklyn:config("spark.webui.port")
+        OWN_IP: $brooklyn:attributeWhenReady("host.subnet.address")
+      
+      brooklyn.config:
+        spark.port: 7077
+        spark.webui.port: 8080
+      
+      provisioning.properties:
+        minRam: 8gb
+        minCores: 4
+        minDisk: 100gb
+        osFamily: ubuntu
+
+      brooklyn.enrichers:
+      # publish URLs when service is up
+      # `spark.url` for public access, `spark.subnet.url` for internal access
+      - type: brooklyn.enricher.basic.Transformer
+        brooklyn.config:
+          enricher.sourceSensor: $brooklyn:sensor("service.isUp")
+          enricher.targetSensor: $brooklyn:sensor("spark.url")
+          enricher.targetValue: |
+            $brooklyn:formatString("spark://%s:%s", 
+              $brooklyn:attributeWhenReady("host.address"), $brooklyn:config("spark.port"))
+      - type: brooklyn.enricher.basic.Transformer
+        brooklyn.config:
+          enricher.sourceSensor: $brooklyn:sensor("service.isUp")
+          enricher.targetSensor: $brooklyn:sensor("spark.subnet.url")
+          enricher.targetValue:
+            $brooklyn:formatString("spark://%s:%s", 
+              $brooklyn:attributeWhenReady("host.subnet.address"), $brooklyn:config("spark.port"))
+      - type: brooklyn.enricher.basic.Transformer
+        brooklyn.config:
+          enricher.sourceSensor: $brooklyn:sensor("service.isUp")
+          enricher.targetSensor: $brooklyn:sensor("main.uri")
+          enricher.targetValue:
+            $brooklyn:formatString("http://%s:%s/", 
+              $brooklyn:attributeWhenReady("host.address"), $brooklyn:config("spark.webui.port"))
+
+  - id: spark-cluster-entity
+    description: An Apache Spark cluster
+    item:
+      type: brooklyn.entity.group.DynamicCluster
+      name: Spark Cluster
+      id: spark-cluster
+      
+      firstMemberSpec:
+        $brooklyn:entitySpec:
+          type: spark-node
+          name: Spark Master
+          id: spark-master
+          
+      memberSpec:
+        $brooklyn:entitySpec:
+          type: spark-node
+          name: Spark Worker
+          brooklyn.config:
+            spark.master.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.subnet.url")
+
+  # define a template to make it easily accessible in the UI
+  - id: spark-cluster-template
+    name: Spark Cluster
+    description: A configurable Apache Spark cluster
+    iconUrl: http://spark.apache.org/images/spark-logo-trademark.png
+    itemType: template
+    item:
+      name: My Spark Cluster
+      
+      services:
+      - type: spark-cluster-entity
+        brooklyn.config:
+          cluster.initial.size: 3
+          
+      ## REQUIRED - the location to deploy to
+      #location:
+      #  jclouds:aws-ec2:eu-central-1:
+      #    identity: TODO-YOUR-CLOUD-ID
+      #    credential: TODO-YOUR-CLOUD-CREDENTIAL
+

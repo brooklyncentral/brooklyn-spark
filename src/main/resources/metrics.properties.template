@@ -1,1 +1,0 @@
-*.sink.MetricsServlet.class=org.apache.spark.metrics.sink.MetricsServlet
