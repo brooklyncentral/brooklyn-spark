@@ -24,6 +24,7 @@ brooklyn.catalog:
 
       launch.command: |
         cd spark-*
+        export SPARK_MASTER_IP=${OWN_IP}
         export SPARK_MASTER_PORT=${LOCAL_SPARK_PORT}
         export SPARK_WORKER_PORT=${LOCAL_SPARK_PORT}
         export SPARK_MASTER_WEBUI_PORT=${SPARK_WEBUI_PORT} 
