@@ -1,9 +1,9 @@
 Brooklyn Apache Spark Cluster
 =======
 
-Simply install the BOM file into your Brooklyn instance and deploy.
+Simply copy-and-paste the [catalog.bom](catalog.bom) file into your Brooklyn instance and deploy.
 
-See [brooklyn.io]() for more information.
+See [brooklyn.apache.org](http://brooklyn.apache.org/) for more information.
 
 ## Nodes
 
