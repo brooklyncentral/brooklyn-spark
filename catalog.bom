@@ -1,5 +1,10 @@
 brooklyn.catalog:
   version: 0.2
+  description: An Apache Spark Entity for Brooklyn
+  publish:
+    license_code: Apache-2.0
+    overview: README.md
+    reference: catalog/reference.json
   items:
   - id: spark-node
     description: A standalone Apache Spark node, master unless given a spark.master.url
