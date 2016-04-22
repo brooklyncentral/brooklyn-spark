@@ -1,7 +1,7 @@
 brooklyn.catalog:
-  version: 0.2
-  description: An Apache Spark Entity for Brooklyn
+  version: 0.2.1-SNAPSHOT
   publish:
+    description: Entities to deploy and manage Apache Spark nodes and clusters using Apache Brooklyn
     license_code: Apache-2.0
     overview: README.md
     reference: catalog/reference.json
