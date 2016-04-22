@@ -1,0 +1,545 @@
+{
+  "entities" : [ {
+    "name" : "Apache Spark Standalone Node",
+    "type" : "spark-node:0.2",
+    "description" : "A standalone Apache Spark node, master unless given a spark.master.url",
+    "iconUrl" : "",
+    "config" : [ {
+      "name" : "archive.nameFormat",
+      "type" : "java.lang.String",
+      "description" : "The format for the directory created when the installation archive is extracted, if required. The version string will be passed in as the first argument, replacing the %s format specifier",
+      "reconfigurable" : false,
+      "label" : "archive.nameFormat",
+      "links" : { }
+    }, {
+      "name" : "checkRunning.command",
+      "type" : "java.lang.String",
+      "description" : "command to determine whether the process is running",
+      "reconfigurable" : false,
+      "label" : "checkRunning.command",
+      "links" : { }
+    }, {
+      "name" : "children.startable.mode",
+      "type" : "java.lang.Enum",
+      "description" : "Controls behaviour when starting Startable children as part of this entity's lifecycle.",
+      "defaultValue" : "NONE",
+      "reconfigurable" : false,
+      "label" : "children.startable.mode",
+      "possibleValues" : [ {
+        "value" : "NONE",
+        "description" : "NONE"
+      }, {
+        "value" : "FOREGROUND",
+        "description" : "FOREGROUND"
+      }, {
+        "value" : "FOREGROUND_LATE",
+        "description" : "FOREGROUND_LATE"
+      }, {
+        "value" : "BACKGROUND",
+        "description" : "BACKGROUND"
+      }, {
+        "value" : "BACKGROUND_LATE",
+        "description" : "BACKGROUND_LATE"
+      } ],
+      "links" : { }
+    }, {
+      "name" : "customize.command",
+      "type" : "java.lang.String",
+      "description" : "command to run during the customization phase",
+      "reconfigurable" : false,
+      "label" : "customize.command",
+      "links" : { }
+    }, {
+      "name" : "customize.latch",
+      "type" : "java.lang.Boolean",
+      "description" : "Latch for blocking customize until ready",
+      "reconfigurable" : false,
+      "label" : "customize.latch",
+      "links" : { }
+    }, {
+      "name" : "dontRequireTtyForSudo",
+      "type" : "java.lang.Boolean",
+      "description" : "Whether to explicitly set /etc/sudoers, so don't need tty (will leave unchanged if 'false'); some machines require a tty for sudo; brooklyn by default does not use a tty (so that it can get separate error+stdout streams); you can enable a tty as an option to every ssh command, or you can do it once and modify the machine so that a tty is not subsequently required.",
+      "defaultValue" : false,
+      "reconfigurable" : false,
+      "label" : "dontRequireTtyForSudo",
+      "links" : { }
+    }, {
+      "name" : "download.addon.urls",
+      "type" : "java.util.Map",
+      "description" : "URL patterns for downloading named add-ons (will substitute things like ${version} automatically)",
+      "reconfigurable" : false,
+      "label" : "download.addon.urls",
+      "links" : { }
+    }, {
+      "name" : "download.url",
+      "type" : "java.lang.String",
+      "description" : "URL pattern for downloading the installer (will substitute things like ${version} automatically)",
+      "reconfigurable" : false,
+      "label" : "download.url",
+      "links" : { }
+    }, {
+      "name" : "entity.running",
+      "type" : "java.lang.Boolean",
+      "description" : "Skip the startup process entirely, if service already running",
+      "reconfigurable" : false,
+      "label" : "entity.running",
+      "links" : { }
+    }, {
+      "name" : "entity.started",
+      "type" : "java.lang.Boolean",
+      "description" : "Skip the startup process entirely, for running services",
+      "reconfigurable" : false,
+      "label" : "entity.started",
+      "links" : { }
+    }, {
+      "name" : "expandedinstall.dir",
+      "type" : "java.lang.String",
+      "description" : "Directory for installed artifacts (e.g. expanded dir after unpacking .tgz)",
+      "reconfigurable" : false,
+      "label" : "expandedinstall.dir",
+      "links" : { }
+    }, {
+      "name" : "files.install",
+      "type" : "java.util.Map",
+      "description" : "Mapping of files, to be copied before install, to destination name relative to installDir",
+      "reconfigurable" : false,
+      "label" : "files.install",
+      "links" : { }
+    }, {
+      "name" : "files.preinstall",
+      "type" : "java.util.Map",
+      "description" : "Mapping of files, to be copied before install, to destination name relative to installDir",
+      "reconfigurable" : false,
+      "label" : "files.preinstall",
+      "links" : { }
+    }, {
+      "name" : "files.runtime",
+      "type" : "java.util.Map",
+      "description" : "Mapping of files, to be copied before customisation, to destination name relative to runDir",
+      "reconfigurable" : false,
+      "label" : "files.runtime",
+      "links" : { }
+    }, {
+      "name" : "inboundPorts.autoInfer",
+      "type" : "java.lang.Boolean",
+      "description" : "If set to false turns off the opening of ports based on naming convention, and also those that are of type PortRange in Java entities",
+      "defaultValue" : true,
+      "reconfigurable" : false,
+      "label" : "inboundPorts.autoInfer",
+      "links" : { }
+    }, {
+      "name" : "inboundPorts.configRegex",
+      "type" : "java.lang.String",
+      "description" : "Regex governing the opening of ports based on config names",
+      "defaultValue" : ".*\\.port",
+      "reconfigurable" : false,
+      "label" : "inboundPorts.configRegex",
+      "links" : { }
+    }, {
+      "name" : "install.command",
+      "type" : "java.lang.String",
+      "description" : "command to run during the install phase",
+      "reconfigurable" : false,
+      "label" : "install.command",
+      "links" : { }
+    }, {
+      "name" : "install.dir",
+      "type" : "java.lang.String",
+      "description" : "Directory for this software to be installed in",
+      "defaultValue" : "${config['onbox.base.dir']!config['brooklyn.datadir']!'/<ERROR>-ONBOX_BASE_DIR-not-set'}/installs/${(config['install.unique_label']??)?string(config['install.unique_label']!'X',(entity.entityType.simpleName)+((config['install.version']??)?string('_'+(config['install.version']!'X'),'')))}",
+      "reconfigurable" : false,
+      "label" : "install.dir",
+      "links" : { }
+    }, {
+      "name" : "install.latch",
+      "type" : "java.lang.Boolean",
+      "description" : "Latch for blocking install until ready",
+      "reconfigurable" : false,
+      "label" : "install.latch",
+      "links" : { }
+    }, {
+      "name" : "install.skip",
+      "type" : "java.lang.Boolean",
+      "description" : "Skip the driver install commands entirely, for pre-installed software",
+      "reconfigurable" : false,
+      "label" : "install.skip",
+      "links" : { }
+    }, {
+      "name" : "install.unique_label",
+      "type" : "java.lang.String",
+      "description" : "Provides a label which uniquely identifies an installation, used in the computation of the install dir; this should include something readable, and must include a hash of all data which differentiates an installation (e.g. version, plugins, etc), but should be the same where install dirs can be shared to allow for re-use",
+      "reconfigurable" : false,
+      "label" : "install.unique_label",
+      "links" : { }
+    }, {
+      "name" : "install.version",
+      "type" : "java.lang.String",
+      "description" : "Suggested version",
+      "defaultValue" : "0.0.0",
+      "reconfigurable" : false,
+      "label" : "install.version",
+      "links" : { }
+    }, {
+      "name" : "launch.command",
+      "type" : "java.lang.String",
+      "description" : "command to run to launch the process",
+      "defaultValue" : "./start.sh",
+      "reconfigurable" : false,
+      "label" : "launch.command",
+      "links" : { }
+    }, {
+      "name" : "launch.latch",
+      "type" : "java.lang.Boolean",
+      "description" : "Latch for blocking launch until ready",
+      "reconfigurable" : false,
+      "label" : "launch.latch",
+      "links" : { }
+    }, {
+      "name" : "metrics.usage.retrieve",
+      "type" : "java.lang.Boolean",
+      "description" : "Whether to retrieve the usage (e.g. performance) metrics",
+      "defaultValue" : true,
+      "reconfigurable" : false,
+      "label" : "metrics.usage.retrieve",
+      "links" : { }
+    }, {
+      "name" : "openIptables",
+      "type" : "java.lang.Boolean",
+      "description" : "Whether to open the INBOUND_PORTS via iptables rules; if true then ssh in to run iptables commands, as part of machine provisioning",
+      "defaultValue" : false,
+      "reconfigurable" : false,
+      "label" : "openIptables",
+      "links" : { }
+    }, {
+      "name" : "post.customize.command",
+      "type" : "java.lang.String",
+      "description" : "Command to be run after the customize method being called on the driver",
+      "reconfigurable" : false,
+      "label" : "post.customize.command",
+      "links" : { }
+    }, {
+      "name" : "post.install.command",
+      "type" : "java.lang.String",
+      "description" : "Command to be run after the install method being called on the driver",
+      "reconfigurable" : false,
+      "label" : "post.install.command",
+      "links" : { }
+    }, {
+      "name" : "post.launch.command",
+      "type" : "java.lang.String",
+      "description" : "Command to be run after the launch method being called on the driver",
+      "reconfigurable" : false,
+      "label" : "post.launch.command",
+      "links" : { }
+    }, {
+      "name" : "pre.customize.command",
+      "type" : "java.lang.String",
+      "description" : "Command to be run prior to the customize method being called on the driver",
+      "reconfigurable" : false,
+      "label" : "pre.customize.command",
+      "links" : { }
+    }, {
+      "name" : "pre.install.command",
+      "type" : "java.lang.String",
+      "description" : "Command to be run prior to the install method being called on the driver",
+      "reconfigurable" : false,
+      "label" : "pre.install.command",
+      "links" : { }
+    }, {
+      "name" : "pre.launch.command",
+      "type" : "java.lang.String",
+      "description" : "Command to be run prior to the launch method being called on the driver",
+      "reconfigurable" : false,
+      "label" : "pre.launch.command",
+      "links" : { }
+    }, {
+      "name" : "provisioning.properties",
+      "type" : "java.util.Map",
+      "description" : "Custom properties to be passed in when provisioning a new machine",
+      "defaultValue" : { },
+      "reconfigurable" : false,
+      "label" : "provisioning.properties",
+      "links" : { }
+    }, {
+      "name" : "requiredOpenLoginPorts",
+      "type" : "java.util.Collection",
+      "description" : "The port(s) to be opened, to allow login",
+      "defaultValue" : [ 22 ],
+      "reconfigurable" : false,
+      "label" : "requiredOpenLoginPorts",
+      "links" : { }
+    }, {
+      "name" : "resources.install.latch",
+      "type" : "java.lang.Boolean",
+      "description" : "Latch for blocking install resources until ready",
+      "reconfigurable" : false,
+      "label" : "resources.install.latch",
+      "links" : { }
+    }, {
+      "name" : "resources.runtime.latch",
+      "type" : "java.lang.Boolean",
+      "description" : "Latch for blocking runtime resources until ready",
+      "reconfigurable" : false,
+      "label" : "resources.runtime.latch",
+      "links" : { }
+    }, {
+      "name" : "run.dir",
+      "type" : "java.lang.String",
+      "description" : "Directory for this software to be run from",
+      "defaultValue" : "${config['onbox.base.dir']!config['brooklyn.datadir']!'/<ERROR>-ONBOX_BASE_DIR-not-set'}/apps/${entity.applicationId}/entities/${entity.entityType.simpleName}_${entity.id}",
+      "reconfigurable" : false,
+      "label" : "run.dir",
+      "links" : { }
+    }, {
+      "name" : "setup.latch",
+      "type" : "java.lang.Boolean",
+      "description" : "Latch for blocking setup until ready",
+      "reconfigurable" : false,
+      "label" : "setup.latch",
+      "links" : { }
+    }, {
+      "name" : "shell.env",
+      "type" : "java.util.Map",
+      "description" : "Map of environment variables to pass to the runtime shell",
+      "defaultValue" : { },
+      "reconfigurable" : false,
+      "label" : "shell.env",
+      "links" : { }
+    }, {
+      "name" : "softwareProcess.lifecycleTasks",
+      "type" : "org.apache.brooklyn.entity.software.base.SoftwareProcessDriverLifecycleEffectorTasks",
+      "description" : "An object that handles lifecycle of an entity's associated machine.",
+      "defaultValue" : "org.apache.brooklyn.entity.software.base.SoftwareProcessDriverLifecycleEffectorTasks@446fe9f1",
+      "reconfigurable" : false,
+      "label" : "softwareProcess.lifecycleTasks",
+      "links" : { }
+    }, {
+      "name" : "softwareProcess.maxSensorRebindDelay",
+      "type" : "org.apache.brooklyn.util.time.Duration",
+      "description" : "The maximum delay to apply when reconnecting sensors when rebinding to this entity. Brooklyn will wait a random amount of time, up to the value of this config key, to avoid a thundering herd problem when the entity shares its machine with several others. Set to null or to 0 to disable any delay.",
+      "defaultValue" : "10s",
+      "reconfigurable" : false,
+      "label" : "softwareProcess.maxSensorRebindDelay",
+      "links" : { }
+    }, {
+      "name" : "start.latch",
+      "type" : "java.lang.Boolean",
+      "description" : "Latch for blocking start until ready",
+      "reconfigurable" : false,
+      "label" : "start.latch",
+      "links" : { }
+    }, {
+      "name" : "start.timeout",
+      "type" : "org.apache.brooklyn.util.time.Duration",
+      "description" : "Time to wait for process and for SERVICE_UP before failing (in seconds, default 2m)",
+      "defaultValue" : "2m",
+      "reconfigurable" : false,
+      "label" : "start.timeout",
+      "links" : { }
+    }, {
+      "name" : "stop.command",
+      "type" : "java.lang.String",
+      "description" : "command to run to stop the process",
+      "reconfigurable" : false,
+      "label" : "stop.command",
+      "links" : { }
+    }, {
+      "name" : "stopIptables",
+      "type" : "java.lang.Boolean",
+      "description" : "Whether to stop iptables entirely; if true then ssh in to stop the iptables service, as part of machine provisioning",
+      "defaultValue" : false,
+      "reconfigurable" : false,
+      "label" : "stopIptables",
+      "links" : { }
+    }, {
+      "name" : "templates.install",
+      "type" : "java.util.Map",
+      "description" : "Mapping of templates, to be filled in and copied before install, to destination name relative to installDir",
+      "reconfigurable" : false,
+      "label" : "templates.install",
+      "links" : { }
+    }, {
+      "name" : "templates.preinstall",
+      "type" : "java.util.Map",
+      "description" : "Mapping of templates, to be filled in and copied before pre-install, to destination name relative to installDir",
+      "reconfigurable" : false,
+      "label" : "templates.preinstall",
+      "links" : { }
+    }, {
+      "name" : "templates.runtime",
+      "type" : "java.util.Map",
+      "description" : "Mapping of templates, to be filled in and copied before customisation, to destination name relative to runDir",
+      "reconfigurable" : false,
+      "label" : "templates.runtime",
+      "links" : { }
+    } ]
+  }, {
+    "name" : "Spark Cluster",
+    "type" : "spark-cluster-entity:0.2",
+    "description" : "An Apache Spark cluster",
+    "iconUrl" : "",
+    "config" : [ {
+      "name" : "cluster.initial.quorumSize",
+      "type" : "java.lang.Integer",
+      "description" : "Initial cluster quorum size - number of initial nodes that must have been successfully started to report success (if < 0, then use value of INITIAL_SIZE)",
+      "defaultValue" : -1,
+      "reconfigurable" : false,
+      "label" : "cluster.initial.quorumSize",
+      "links" : { }
+    }, {
+      "name" : "cluster.initial.size",
+      "type" : "java.lang.Integer",
+      "description" : "Initial cluster size",
+      "defaultValue" : 1,
+      "reconfigurable" : false,
+      "label" : "cluster.initial.size",
+      "links" : { }
+    }, {
+      "name" : "cluster.member.id",
+      "type" : "java.lang.Integer",
+      "description" : "The unique ID number (sequential) of a member of a cluster",
+      "reconfigurable" : false,
+      "label" : "cluster.member.id",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.availabilityZones",
+      "type" : "java.util.Collection",
+      "description" : "availability zones to use (if non-null, overrides other configuration)",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.availabilityZones",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.customChildFlags",
+      "type" : "java.util.Map",
+      "description" : "Additional flags to be passed to children when they are being created",
+      "defaultValue" : { },
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.customChildFlags",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.factory",
+      "type" : "org.apache.brooklyn.core.entity.factory.EntityFactory",
+      "description" : "factory for creating new cluster members",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.factory",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.firstmemberspec",
+      "type" : "org.apache.brooklyn.api.entity.EntitySpec",
+      "description" : "entity spec for creating new cluster members, used for the very first member if different",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.firstmemberspec",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.memberspec",
+      "type" : "org.apache.brooklyn.api.entity.EntitySpec",
+      "description" : "entity spec for creating new cluster members",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.memberspec",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.numAvailabilityZones",
+      "type" : "java.lang.Integer",
+      "description" : "number of availability zones to use (will attempt to auto-discover this number)",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.numAvailabilityZones",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.quarantineFailedEntities",
+      "type" : "java.lang.Boolean",
+      "description" : "If true, will quarantine entities that fail to start; if false, will get rid of them (i.e. delete them)",
+      "defaultValue" : true,
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.quarantineFailedEntities",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.quarantineFilter",
+      "type" : "com.google.common.base.Predicate",
+      "description" : "Quarantine the failed nodes that pass this filter (given the exception thrown by the node). Default is those that did not fail with NoMachinesAvailableException (Config ignored if quarantineFailedEntities is false)",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.quarantineFilter",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.removalstrategy",
+      "type" : "com.google.common.base.Function",
+      "description" : "strategy for deciding what to remove when down-sizing",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.removalstrategy",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.restartMode",
+      "type" : "java.lang.String",
+      "description" : "How this cluster should handle restarts; by default it is disallowed, but this key can specify a different mode. Modes supported by dynamic cluster are 'off', 'sequqential', or 'parallel'. However subclasses can define their own modes or may ignore this.",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.restartMode",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.zone.enable",
+      "type" : "java.lang.Boolean",
+      "description" : "Whether to use availability zones, or just deploy everything into the generic location",
+      "defaultValue" : false,
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.zone.enable",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.zone.failureDetector",
+      "type" : "org.apache.brooklyn.entity.group.DynamicCluster$ZoneFailureDetector",
+      "description" : "Zone failure detector",
+      "defaultValue" : "org.apache.brooklyn.entity.group.zoneaware.ProportionalZoneFailureDetector@64250411",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.zone.failureDetector",
+      "links" : { }
+    }, {
+      "name" : "dynamiccluster.zone.placementStrategy",
+      "type" : "org.apache.brooklyn.entity.group.DynamicCluster$NodePlacementStrategy",
+      "description" : "Node placement strategy",
+      "defaultValue" : "org.apache.brooklyn.entity.group.zoneaware.BalancingNodePlacementStrategy@1180e245",
+      "reconfigurable" : false,
+      "label" : "dynamiccluster.zone.placementStrategy",
+      "links" : { }
+    }, {
+      "name" : "enricher.service_state.children_and_members.quorum.running",
+      "type" : "org.apache.brooklyn.util.collections.QuorumCheck",
+      "description" : "Problems check from children actual states (lifecycle), applied by default to members and children, not checking upness, but requiring by default that none are on-fire",
+      "defaultValue" : "QuorumCheck[all;require=0,100.0%]",
+      "reconfigurable" : false,
+      "label" : "enricher.service_state.children_and_members.quorum.running",
+      "links" : { }
+    }, {
+      "name" : "enricher.service_state.children_and_members.quorum.up",
+      "type" : "org.apache.brooklyn.util.collections.QuorumCheck",
+      "description" : "Up check, applied by default to members, requiring at least one present and up",
+      "defaultValue" : "QuorumCheck[atLeastOne;require=1,0.0%]",
+      "reconfigurable" : false,
+      "label" : "enricher.service_state.children_and_members.quorum.up",
+      "links" : { }
+    }, {
+      "name" : "group.members.delegate",
+      "type" : "java.lang.Boolean",
+      "description" : "Deprecated: Add delegate child entities for members of the group",
+      "defaultValue" : false,
+      "reconfigurable" : false,
+      "label" : "group.members.delegate",
+      "links" : { }
+    }, {
+      "name" : "group.members.delegate.nameFormat",
+      "type" : "java.lang.String",
+      "description" : "Delegate members name format string (Use %s for the original entity display name)",
+      "defaultValue" : "%s",
+      "reconfigurable" : false,
+      "label" : "group.members.delegate.nameFormat",
+      "links" : { }
+    } ]
+  }, {
+    "name" : "Spark Cluster",
+    "type" : "spark-cluster-template:0.2",
+    "description" : "A configurable Apache Spark cluster",
+    "iconUrl" : "http://spark.apache.org/images/spark-logo-trademark.png",
+    "config" : [ ]
+  } ],
+  "policies" : [ ],
+  "enrichers" : [ ],
+  "locations" : [ ],
+  "locationResolvers" : [ ]
+}
