@@ -1,5 +1,6 @@
 brooklyn.catalog:
   version: 0.2.1-SNAPSHOT
+  iconUrl: https://upload.wikimedia.org/wikipedia/commons/e/ea/Spark-logo-192x100px.png
   publish:
     description: Entities to deploy and manage Apache Spark nodes and clusters using Apache Brooklyn
     license_code: Apache-2.0
