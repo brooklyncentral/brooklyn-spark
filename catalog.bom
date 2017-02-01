@@ -106,9 +106,10 @@ brooklyn.catalog:
 
   # define a template to make it easily accessible in the UI
   - id: spark-cluster-template
+    version: 0.2.1-SNAPSHOT
+    iconUrl: https://upload.wikimedia.org/wikipedia/commons/e/ea/Spark-logo-192x100px.png
     name: Spark Cluster
     description: A configurable Apache Spark cluster
-    iconUrl: http://spark.apache.org/images/spark-logo-trademark.png
     itemType: template
     item:
       name: My Spark Cluster
