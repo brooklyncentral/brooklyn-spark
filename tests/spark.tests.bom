@@ -1,0 +1,52 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+brooklyn.catalog:
+  items:
+  - "https://raw.githubusercontent.com/brooklyncentral/common-catalog-utils/master/common-tests/src/main/resources/commontests/common.tests.bom"
+  - id: spark-tests
+    version: 0.1.0-SNAPSHOT
+    itemType: template
+    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/e/ea/Spark-logo-192x100px.png"
+    name: Spark tests
+    description: Test that Spark is running and operating correctly
+    license_code: Apache-2.0
+    license_url: http://www.apache.org/licenses/LICENSE-2.0.txt
+    item:
+      services:
+      - type: spark-cluster-template
+        id: spark
+      - type: test-case
+        name: Spark Tests
+        brooklyn.config:
+          targetId: spark
+          timeout: 1h
+        brooklyn.children:
+        - type: test-case
+          name: "1. Effector Start Tests"
+          brooklyn.children:  
+          - type: assert-up-and-running-initial
+            name: "1.1 Node up and running"
+
+        - type: test-case
+          name: "2. Test Interfaces"
+          brooklyn.children:  
+          # HTTP Tests
+          - type: test-http-status-200
+            name: "3.1 Test Spark Master node"
+            url: $brooklyn:entity("spark-master").attributeWhenReady("main.uri")

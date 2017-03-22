@@ -1,29 +1,56 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 brooklyn.catalog:
-  version: 0.2.1-SNAPSHOT
+  version: 0.3.0-SNAPSHOT
   iconUrl: https://upload.wikimedia.org/wikipedia/commons/e/ea/Spark-logo-192x100px.png
   publish:
     description: Entities to deploy and manage Apache Spark nodes and clusters using Apache Brooklyn
     license_code: Apache-2.0
+    defaults:
+      sparkIconUrl: &sparkIconUrl "https://upload.wikimedia.org/wikipedia/commons/e/ea/Spark-logo-192x100px.png"
     overview: README.md
     reference: catalog/reference.json
   items:
   - id: spark-node
     description: A standalone Apache Spark node, master unless given a spark.master.url
     item:
-      type: org.apache.brooklyn.entity.software.base.VanillaSoftwareProcess
+      type: centos7-software-process
       name: Apache Spark Standalone Node
+      brooklyn.parameters:
+      - &sparkDownloadUrl
+        name: spark.download.url
+        label: "Spark Download URL"
+        description: |
+          Spark Download URL
+        type: string
+        default: "http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz"  
       
       install.command: |
-        # get java (and curl if missing, as in some crazy clouds)
-        sudo apt-get update
-        sudo apt-get install -y --allow-unauthenticated default-jre
-        [ -x curl ] || sudo apt-get install -y --allow-unauthenticated curl
+        # get java
+        sudo yum update -y
+        sudo yum install -y java-1.8.0-openjdk
         
         # if hostname is bogus then point it at localhost
         ping -c 1 `hostname` || echo ${OWN_IP} `hostname` | sudo tee -a /etc/hosts
         
         # get spark
-        curl -o spark.tgz http://d3kbcqa49mib13.cloudfront.net/spark-1.6.0-bin-hadoop2.6.tgz
+        curl -o spark.tgz ${SPARK_DOWNLOAD_URL}
       
       customize.command: |
         tar xvzf ${INSTALL_DIR}/spark.tgz
@@ -47,6 +74,7 @@ brooklyn.catalog:
         SPARK_MASTER_URL: $brooklyn:config("spark.master.url")
         LOCAL_SPARK_PORT: $brooklyn:config("spark.port")
         SPARK_WEBUI_PORT: $brooklyn:config("spark.webui.port")
+        SPARK_DOWNLOAD_URL: $brooklyn:config("spark.download.url")
         OWN_IP: $brooklyn:attributeWhenReady("host.subnet.address")
       
       brooklyn.config:
@@ -57,7 +85,8 @@ brooklyn.catalog:
         minRam: 8gb
         minCores: 4
         minDisk: 100gb
-        osFamily: ubuntu
+        osFamily: centos
+        osVersionRegex: 7
 
       brooklyn.enrichers:
       # publish URLs when service is up
@@ -106,8 +135,9 @@ brooklyn.catalog:
 
   # define a template to make it easily accessible in the UI
   - id: spark-cluster-template
-    version: 0.2.1-SNAPSHOT
-    iconUrl: https://upload.wikimedia.org/wikipedia/commons/e/ea/Spark-logo-192x100px.png
+    version: 0.3.0-SNAPSHOT
+    iconUrl: *sparkIconUrl
+    license: Apache-2.0
     name: Spark Cluster
     description: A configurable Apache Spark cluster
     itemType: template
@@ -117,7 +147,14 @@ brooklyn.catalog:
       services:
       - type: spark-cluster-entity
         brooklyn.config:
-          cluster.initial.size: 3
+          cluster.initial.size: $brooklyn:config("spark.initial.size")
+      
+      brooklyn.parameters:
+        - name: spark.initial.size
+          label: "Spark Cluster Size"
+          type: integer
+          default: 3
+        - *sparkDownloadUrl
           
       ## REQUIRED - the location to deploy to
       #location:
