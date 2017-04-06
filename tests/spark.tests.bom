@@ -45,8 +45,20 @@ brooklyn.catalog:
 
         - type: test-case
           name: "2. Test Interfaces"
-          brooklyn.children:  
+          brooklyn.children:
           # HTTP Tests
           - type: test-http-status-200
             name: "3.1 Test Spark Master node"
             url: $brooklyn:entity("spark-master").attributeWhenReady("main.uri")
+
+        - type: test-case
+          name: "3. Test Submit App effector"
+          brooklyn.children:
+          # Effector Tests
+          - type: org.apache.brooklyn.test.framework.TestEffector
+            name: Invoke Submit App Effector
+            targetId: spark-worker
+            effector: SubmitSparkApp
+            timeout: 1m
+            assertOut:
+              contains: "Pi is roughly"
