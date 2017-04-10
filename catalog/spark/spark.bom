@@ -37,8 +37,10 @@ brooklyn.catalog:
       customize.command: |
         tar xvzf ${INSTALL_DIR}/spark.tgz
 
+      # SPARK_PUBLIC_DNS is set to fix the links in the ui, as per the common troubleshooting section https://www.datastax.com/dev/blog/common-spark-troubleshooting
       launch.command: |
         cd spark-*
+        export SPARK_PUBLIC_DNS=${PUBLIC_IP}
         export SPARK_MASTER_IP=${OWN_IP}
         export SPARK_MASTER_PORT=${LOCAL_SPARK_PORT}
         export SPARK_WORKER_PORT=${LOCAL_SPARK_PORT}
@@ -58,6 +60,7 @@ brooklyn.catalog:
         SPARK_WEBUI_PORT: $brooklyn:config("spark.webui.port")
         SPARK_DOWNLOAD_URL: $brooklyn:config("spark.download.url")
         OWN_IP: $brooklyn:attributeWhenReady("host.subnet.address")
+        PUBLIC_IP: $brooklyn:attributeWhenReady("host.address")
 
       brooklyn.config:
         spark.port: 7077
@@ -69,6 +72,28 @@ brooklyn.catalog:
         minDisk: 100gb
         osFamily: centos
         osVersionRegex: 7
+        customizers:
+        - $brooklyn:object:
+            type: org.apache.brooklyn.location.jclouds.networking.SharedLocationSecurityGroupCustomizer
+            object.fields:
+              tcpPortRanges: ["22","4040-4050","8080"]
+
+      brooklyn.initializers:
+      - type: brooklyn.entity.software.ssh.SshCommandEffector
+        brooklyn.config:
+          name: SubmitSparkApp
+          description: Start Spark App
+          command: |
+            cd spark-*
+            exec bin/spark-submit --master ${SPARK_MASTER_URL} --class ${class} ${application_jar}
+          parameters:
+            class:
+              description: The app class
+              defaultValue: "org.apache.spark.examples.SparkPi"
+            application_jar:
+              # todo allow external resources, this assumes the file is on the machine
+              description: The application jar
+              defaultValue: "examples/jars/spark-examples_2.11-2.1.0.jar"
 
       brooklyn.enrichers:
       # publish URLs when service is up
@@ -112,8 +137,9 @@ brooklyn.catalog:
         $brooklyn:entitySpec:
           type: spark-node
           name: Spark Worker
+          id: spark-worker
           brooklyn.config:
-            spark.master.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.subnet.url")
+            spark.master.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.url")
 
   # define a template to make it easily accessible in the UI
   - id: spark-cluster-template
