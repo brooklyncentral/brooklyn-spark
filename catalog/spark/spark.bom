@@ -49,7 +49,8 @@ brooklyn.catalog:
       customize.command: |
         tar xvzf ${INSTALL_DIR}/spark.tgz
 
-      # SPARK_PUBLIC_DNS is set to fix the links in the ui, as per the common troubleshooting section https://www.datastax.com/dev/blog/common-spark-troubleshooting
+      # SPARK_PUBLIC_DNS is set to fix the links in the ui, as per
+      # https://www.datastax.com/dev/blog/common-spark-troubleshooting
       launch.command: |
         cd spark-*
         export SPARK_PUBLIC_DNS=${PUBLIC_IP}
@@ -95,9 +96,14 @@ brooklyn.catalog:
         brooklyn.config:
           name: SubmitSparkApp
           description: Start Spark App
+          shell.env:
+            # Used by the master since SPARK_MASTER_URL is unset.
+            OWN_URL: $brooklyn:attributeWhenReady("spark.url")
           command: |
             cd spark-*
-            exec bin/spark-submit --master ${SPARK_MASTER_URL} --class ${class} ${application_jar}
+            IP=${SPARK_MASTER_URL:-$OWN_URL}
+            echo "Master: ${IP}"
+            ./bin/spark-submit --master ${IP} --class ${class} ${application_jar}
           parameters:
             class:
               description: The app class
