@@ -9,10 +9,22 @@ brooklyn.catalog:
     overview: README.md
     reference: catalog/reference.json
   items:
+  - id: spark-base-software-process
+    name: "Spark Base Software Process"
+    description: |
+      A base entity for reuse in other components.
+    itemType: entity
+    item:
+      type: org.apache.brooklyn.entity.software.base.VanillaSoftwareProcess
+      brooklyn.config:
+        dontRequireTtyForSudo: true
+        provisioning.properties:
+          osFamily: centos
+          osVersionRegex: 7
   - id: spark-node
     description: A standalone Apache Spark node, master unless given a spark.master.url
     item:
-      type: centos7-software-process
+      type: spark-base-software-process
       name: Apache Spark Standalone Node
       brooklyn.parameters:
       - &sparkDownloadUrl
