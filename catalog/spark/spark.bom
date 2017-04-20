@@ -40,6 +40,10 @@ brooklyn.catalog:
         sudo yum update -y
         sudo yum install -y java-1.8.0-openjdk
 
+        # turn off the firewall
+        sudo systemctl stop firewalld || true
+        sudo systemctl disable firewalld || true
+
         # if hostname is bogus then point it at localhost
         ping -c 1 `hostname` || echo ${OWN_IP} `hostname` | sudo tee -a /etc/hosts
 
@@ -141,7 +145,7 @@ brooklyn.catalog:
   - id: spark-cluster-entity
     description: An Apache Spark cluster
     item:
-      type: brooklyn.entity.group.DynamicCluster
+      type: org.apache.brooklyn.entity.group.DynamicCluster
       name: Spark Cluster
       id: spark-cluster
 
