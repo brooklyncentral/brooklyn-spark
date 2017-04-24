@@ -1,4 +1,4 @@
-Brooklyn Apache Spark Cluster
+Apache Brooklyn Spark Cluster
 =======
 
 Simply copy-and-paste the [catalog.bom](catalog.bom) file into your Brooklyn instance and deploy.
