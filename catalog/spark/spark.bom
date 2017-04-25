@@ -82,6 +82,7 @@ brooklyn.catalog:
       brooklyn.config:
         spark.port: 7077
         spark.webui.port: 8080
+        children.startable.mode: background_late
 
       provisioning.properties:
         minRam: 8gb
@@ -93,29 +94,22 @@ brooklyn.catalog:
         - $brooklyn:object:
             type: org.apache.brooklyn.location.jclouds.networking.SharedLocationSecurityGroupCustomizer
             object.fields:
-              tcpPortRanges: ["22","4040-4050","8080"]
+              tcpPortRanges: ["22","4040-4050","8080", "6066"]
 
       brooklyn.initializers:
-      - type: brooklyn.entity.software.ssh.SshCommandEffector
+      - type: org.apache.brooklyn.core.effector.AddChildrenEffector
         brooklyn.config:
           name: SubmitSparkApp
           description: Start Spark App
-          shell.env:
-            # Used by the master since SPARK_MASTER_URL is unset.
-            OWN_URL: $brooklyn:attributeWhenReady("spark.url")
-          command: |
-            cd spark-*
-            IP=${SPARK_MASTER_URL:-$OWN_URL}
-            echo "Master: ${IP}"
-            ./bin/spark-submit --master ${IP} --class ${class} ${application_jar}
+          blueprint_type: spark-application
           parameters:
-            class:
+            spark.app.class:
               description: The app class
               defaultValue: "org.apache.spark.examples.SparkPi"
-            application_jar:
+            spark.app.jar:
               # todo allow external resources, this assumes the file is on the machine
               description: The application jar
-              defaultValue: "examples/jars/spark-examples_2.11-2.1.0.jar"
+              defaultValue: "http://dl.bintray.com/typesafe/maven-releases/org/apache/spark/spark-examples_2.11/1.6.0-typesafe-001/spark-examples_2.11-1.6.0-typesafe-001.jar"
 
       brooklyn.enrichers:
       # publish URLs when service is up
@@ -162,6 +156,70 @@ brooklyn.catalog:
           id: spark-worker
           brooklyn.config:
             spark.master.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.url")
+
+  - id: spark-application
+    description: An Apache Spark Application
+    item:
+      type: org.apache.brooklyn.entity.software.base.VanillaSoftwareProcess
+      name: Spark Application
+      id: spark-application
+      brooklyn.parameters:
+        - name: spark.app.class
+          label: "Spark App Class"
+          description: |
+            Spark App Class
+          type: string
+          default: "org.apache.spark.examples.SparkPi"
+        - name: spark.app.jar
+          label: "Spark App Jar"
+          description: |
+            Spark App Jar
+          type: string
+          default: "http://dl.bintray.com/typesafe/maven-releases/org/apache/spark/spark-examples_2.11/1.6.0-typesafe-001/spark-examples_2.11-1.6.0-typesafe-001.jar"
+
+      brooklyn.initializers:
+        - type: org.apache.brooklyn.core.sensor.ssh.SshCommandSensor
+          brooklyn.config:
+            name: spark.app.submission.id
+            period: 1s
+            command: "cat ${PARENT_RUN_DIR}/spark-*/submissionId"
+        - type: org.apache.brooklyn.core.sensor.http.HttpRequestSensor
+          brooklyn.config:
+            name: spark.app.status
+            period: 1s
+            jsonPath: driverState
+            uri:
+              '$brooklyn:formatString':
+                - 'http://%s:6066/v1/submissions/status/%s'
+                - $brooklyn:component("parent", "ignored").attributeWhenReady("host.address")
+                - $brooklyn:attributeWhenReady("spark.app.submission.id")
+
+      brooklyn.config:
+
+        shell.env:
+          MASTER_IP: $brooklyn:component("parent", "ignored").attributeWhenReady("host.subnet.address")
+          PARENT_RUN_DIR: $brooklyn:component("parent", "ignored").attributeWhenReady("run.dir")
+          SPARK_APP_CLASS: $brooklyn:config("spark.app.class")
+          SPARK_APP_JAR: $brooklyn:config("spark.app.jar")
+
+        launch.command: |
+          cd ${PARENT_RUN_DIR}/spark-*
+          IP=spark://${MASTER_IP}:6066
+          ./bin/spark-submit --deploy-mode cluster --master ${IP} --class ${SPARK_APP_CLASS} ${SPARK_APP_JAR} 2>&1 |grep submissionId | awk '{print $3}' | tr -d '",' > submissionId
+
+        # Do not inherit!
+        checkRunning.command: true
+        customize.command:    true
+        install.command:      true
+        post.launch.command:  true
+        postCustomizeCommand: true
+        postInstallCommand:   true
+        postLaunchCommand:    true
+        preCustomizeCommand:  true
+        preInstallCommand:    true
+        preLaunchCommand:     true
+        stop.command:         true
+        preInstallTemplates:  {}
 
   # define a template to make it easily accessible in the UI
   - id: spark-cluster-template
