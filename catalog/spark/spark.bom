@@ -74,6 +74,7 @@ brooklyn.catalog:
       shell.env:
         SPARK_MASTER_URL: $brooklyn:config("spark.master.url")
         LOCAL_SPARK_PORT: $brooklyn:config("spark.port")
+        LOCAL_SPARK_REST_PORT: $brooklyn:config("spark.port")
         SPARK_WEBUI_PORT: $brooklyn:config("spark.webui.port")
         SPARK_DOWNLOAD_URL: $brooklyn:config("spark.download.url")
         OWN_IP: $brooklyn:attributeWhenReady("host.subnet.address")
@@ -81,6 +82,7 @@ brooklyn.catalog:
 
       brooklyn.config:
         spark.port: 7077
+        spark.rest.port: 6066
         spark.webui.port: 8080
         children.startable.mode: background_late
 
@@ -107,7 +109,6 @@ brooklyn.catalog:
               description: The app class
               defaultValue: "org.apache.spark.examples.SparkPi"
             spark.app.jar:
-              # todo allow external resources, this assumes the file is on the machine
               description: The application jar
               defaultValue: "http://dl.bintray.com/typesafe/maven-releases/org/apache/spark/spark-examples_2.11/1.6.0-typesafe-001/spark-examples_2.11-1.6.0-typesafe-001.jar"
 
@@ -121,6 +122,21 @@ brooklyn.catalog:
           enricher.targetValue: |
             $brooklyn:formatString("spark://%s:%s",
               $brooklyn:attributeWhenReady("host.address"), $brooklyn:config("spark.port"))
+      - type: brooklyn.enricher.basic.Transformer
+        brooklyn.config:
+          enricher.sourceSensor: $brooklyn:sensor("service.isUp")
+          enricher.targetSensor: $brooklyn:sensor("spark.rest.url")
+          enricher.targetValue: |
+            $brooklyn:formatString("http://%s:%s",
+              $brooklyn:attributeWhenReady("host.address"), $brooklyn:config("spark.rest.port"))
+      - type: brooklyn.enricher.basic.Transformer
+        brooklyn.config:
+          enricher.sourceSensor: $brooklyn:sensor("service.isUp")
+          enricher.targetSensor: $brooklyn:sensor("spark.cluster.url")
+          enricher.targetValue: |
+            $brooklyn:formatString("spark://%s:%s",
+              $brooklyn:attributeWhenReady("host.address"), $brooklyn:config("spark.rest.port"))
+
       - type: brooklyn.enricher.basic.Transformer
         brooklyn.config:
           enricher.sourceSensor: $brooklyn:sensor("service.isUp")
@@ -148,6 +164,9 @@ brooklyn.catalog:
           type: spark-node
           name: Spark Master
           id: spark-master
+          brooklyn.config:
+            spark.master.rest.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.rest.url")
+            spark.master.cluster.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.cluster.url")
 
       memberSpec:
         $brooklyn:entitySpec:
@@ -156,6 +175,8 @@ brooklyn.catalog:
           id: spark-worker
           brooklyn.config:
             spark.master.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.url")
+            spark.master.rest.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.rest.url")
+            spark.master.cluster.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.cluster.url")
 
   - id: spark-application
     description: An Apache Spark Application
@@ -190,22 +211,21 @@ brooklyn.catalog:
             jsonPath: driverState
             uri:
               '$brooklyn:formatString':
-                - 'http://%s:6066/v1/submissions/status/%s'
-                - $brooklyn:component("parent", "ignored").attributeWhenReady("host.address")
+                - '%s/v1/submissions/status/%s'
+                - $brooklyn:config("spark.master.rest.url")
                 - $brooklyn:attributeWhenReady("spark.app.submission.id")
 
       brooklyn.config:
 
         shell.env:
-          MASTER_IP: $brooklyn:component("parent", "ignored").attributeWhenReady("host.subnet.address")
+          SPARK_CLUSTER_URL: $brooklyn:config("spark.master.cluster.url")
           PARENT_RUN_DIR: $brooklyn:component("parent", "ignored").attributeWhenReady("run.dir")
           SPARK_APP_CLASS: $brooklyn:config("spark.app.class")
           SPARK_APP_JAR: $brooklyn:config("spark.app.jar")
 
         launch.command: |
           cd ${PARENT_RUN_DIR}/spark-*
-          IP=spark://${MASTER_IP}:6066
-          ./bin/spark-submit --deploy-mode cluster --master ${IP} --class ${SPARK_APP_CLASS} ${SPARK_APP_JAR} 2>&1 |grep submissionId | awk '{print $3}' | tr -d '",' > submissionId
+          ./bin/spark-submit --deploy-mode cluster --master ${SPARK_CLUSTER_URL} --class ${SPARK_APP_CLASS} ${SPARK_APP_JAR} 2>&1 |grep submissionId | awk '{print $3}' | tr -d '",' > submissionId
 
         # Do not inherit!
         checkRunning.command: true
