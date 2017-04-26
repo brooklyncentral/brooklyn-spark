@@ -203,7 +203,12 @@ brooklyn.catalog:
           brooklyn.config:
             name: spark.app.submission.id
             period: 1s
-            command: "cat ${PARENT_RUN_DIR}/spark-*/submissionId"
+            command: |
+              if [ -f ${RUN_DIR}/submissionId ]
+              then
+                  cat ${RUN_DIR}/submissionId
+              fi
+
         - type: org.apache.brooklyn.core.sensor.http.HttpRequestSensor
           brooklyn.config:
             name: spark.app.status
@@ -222,10 +227,12 @@ brooklyn.catalog:
           PARENT_RUN_DIR: $brooklyn:component("parent", "ignored").attributeWhenReady("run.dir")
           SPARK_APP_CLASS: $brooklyn:config("spark.app.class")
           SPARK_APP_JAR: $brooklyn:config("spark.app.jar")
+          RUN_DIR: $brooklyn:attributeWhenReady("run.dir")
 
         launch.command: |
           cd ${PARENT_RUN_DIR}/spark-*
-          ./bin/spark-submit --deploy-mode cluster --master ${SPARK_CLUSTER_URL} --class ${SPARK_APP_CLASS} ${SPARK_APP_JAR} 2>&1 |grep submissionId | awk '{print $3}' | tr -d '",' > submissionId
+          ./bin/spark-submit --deploy-mode cluster --master ${SPARK_CLUSTER_URL} --class ${SPARK_APP_CLASS} ${SPARK_APP_JAR} 2>&1 |grep submissionId | awk '{print $3}' | tr -d '",' > ${RUN_DIR}/submissionId
+
 
         # Do not inherit!
         checkRunning.command: true
