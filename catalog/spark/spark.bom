@@ -230,9 +230,18 @@ brooklyn.catalog:
           RUN_DIR: $brooklyn:attributeWhenReady("run.dir")
 
         launch.command: |
+          set +e
           cd ${PARENT_RUN_DIR}/spark-*
-          ./bin/spark-submit --deploy-mode cluster --master ${SPARK_CLUSTER_URL} --class ${SPARK_APP_CLASS} ${SPARK_APP_JAR} 2>&1 |grep submissionId | awk '{print $3}' | tr -d '",' > ${RUN_DIR}/submissionId
+          ./bin/spark-submit --deploy-mode cluster --master "${SPARK_CLUSTER_URL}" --class "${SPARK_APP_CLASS}" "${SPARK_APP_JAR}" 2> result.txt
 
+          if [ $? -ne 0 ]; then
+            echo "An error occurred when running spark-submit, please check the parameters:"
+            echo "Class: ${SPARK_APP_CLASS}"
+            echo "Jar: ${SPARK_APP_JAR}"
+            exit 1
+          else
+            cat result.txt |grep submissionId | awk '{print $3}' | tr -d '",' > ${RUN_DIR}/submissionId
+          fi
 
         # Do not inherit!
         checkRunning.command: true
