@@ -91,11 +91,6 @@ brooklyn.catalog:
         minDisk: 100gb
         osFamily: centos
         osVersionRegex: 7
-        customizers:
-        - $brooklyn:object:
-            type: org.apache.brooklyn.location.jclouds.networking.SharedLocationSecurityGroupCustomizer
-            object.fields:
-              tcpPortRanges: ["22","4040-4050","8080","6066"]
 
       brooklyn.initializers:
       - type: org.apache.brooklyn.core.effector.AddChildrenEffector

@@ -5,17 +5,32 @@ Simply copy-and-paste the [catalog.bom](catalog.bom) file into your Brooklyn ins
 
 See [brooklyn.apache.org](http://brooklyn.apache.org/) for more information.
 
-## Nodes
+## Notes
 
 * The older Java version of the blueprint is available in the java-brooklyn-spark branch.
 
 * On SoftLayer you often need to specify the network ID's to use,
   otherwise it may provision nodes in different subnets.  For example:
 
-       location:
-         jclouds:softlayer:
-           region: ams01
-           templateOptions:
-             primaryNetworkComponentNetworkVlanId: 1153481
-             primaryBackendNetworkComponentNetworkVlanId: 1153483
+```
+location:
+  jclouds:softlayer:
+    region: ams01
+    templateOptions:
+      primaryNetworkComponentNetworkVlanId: 1153481
+      primaryBackendNetworkComponentNetworkVlanId: 1153483
+```
 
+* On AWS you will want to configure connectivity between instances. You can do this with
+  a `SharedLocationSecurityGroupCustomizer` location customizer:
+
+```
+- type: spark-node
+  brooklyn.config:
+    provisioning.properties:
+      customizers:
+      - $brooklyn:object:
+          type: org.apache.brooklyn.location.jclouds.networking.SharedLocationSecurityGroupCustomizer
+          object.fields:
+            tcpPortRanges: ["22","4040-4050","8080","6066"]
+```
