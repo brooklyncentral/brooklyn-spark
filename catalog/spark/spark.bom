@@ -62,7 +62,6 @@ brooklyn.catalog:
         export SPARK_MASTER_PORT=${LOCAL_SPARK_PORT}
         export SPARK_WORKER_PORT=${LOCAL_SPARK_PORT}
         export SPARK_MASTER_WEBUI_PORT=${SPARK_WEBUI_PORT}
-        export SPARK_WORKER_WEBUI_PORT=${SPARK_WEBUI_PORT}
         [ -z "$SPARK_MASTER_URL" ] && sbin/start-master.sh || sbin/start-slave.sh ${SPARK_MASTER_URL}
 
       checkRunning.command: |
@@ -166,7 +165,6 @@ brooklyn.catalog:
           id: spark-master
           brooklyn.config:
             spark.master.rest.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.rest.url")
-            spark.master.cluster.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.cluster.url")
 
       memberSpec:
         $brooklyn:entitySpec:
@@ -176,7 +174,6 @@ brooklyn.catalog:
           brooklyn.config:
             spark.master.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.url")
             spark.master.rest.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.rest.url")
-            spark.master.cluster.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.cluster.url")
 
   - id: spark-application
     description: An Apache Spark Application
@@ -202,17 +199,15 @@ brooklyn.catalog:
         - type: org.apache.brooklyn.core.sensor.ssh.SshCommandSensor
           brooklyn.config:
             name: spark.app.submission.id
-            period: 1s
+            period: 3s
             command: |
-              if [ -f ${RUN_DIR}/submissionId ]
-              then
-                  cat ${RUN_DIR}/submissionId
-              fi
+              FILE="${RUN_DIR}/submissionId"
+              test -f "$FILE" && cat "$FILE"
 
         - type: org.apache.brooklyn.core.sensor.http.HttpRequestSensor
           brooklyn.config:
             name: spark.app.status
-            period: 1s
+            period: 3s
             jsonPath: driverState
             uri:
               '$brooklyn:formatString':
@@ -223,24 +218,30 @@ brooklyn.catalog:
       brooklyn.config:
 
         shell.env:
-          SPARK_CLUSTER_URL: $brooklyn:config("spark.master.cluster.url")
           PARENT_RUN_DIR: $brooklyn:component("parent", "ignored").attributeWhenReady("run.dir")
+          # Worker nodes know the Spark master but the master doesn't.
+          PARENT_MASTER: $brooklyn:component("parent", "ignored").config("spark.master.url")
+          PARENT_OWN_URL: $brooklyn:component("parent", "ignored").attributeWhenReady("spark.url")
           SPARK_APP_CLASS: $brooklyn:config("spark.app.class")
           SPARK_APP_JAR: $brooklyn:config("spark.app.jar")
           RUN_DIR: $brooklyn:attributeWhenReady("run.dir")
 
         launch.command: |
-          set +e
-          cd ${PARENT_RUN_DIR}/spark-*
-          ./bin/spark-submit --deploy-mode cluster --master "${SPARK_CLUSTER_URL}" --class "${SPARK_APP_CLASS}" "${SPARK_APP_JAR}" 2> result.txt
+          set -x
+          IP=${PARENT_MASTER:-$PARENT_OWN_URL}
+          SPARK_DIR=$(find "$PARENT_RUN_DIR/" -maxdepth 1 -type d  | tail -n 1)
+          "${SPARK_DIR}/bin/spark-submit" --deploy-mode cluster --master "${IP}" --class "${SPARK_APP_CLASS}" "${SPARK_APP_JAR}" 2> result.txt
 
           if [ $? -ne 0 ]; then
-            echo "An error occurred when running spark-submit, please check the parameters:"
+            echo "An error occurred when running spark-submit with parameters:"
+            echo "Master IP: ${IP}"
             echo "Class: ${SPARK_APP_CLASS}"
             echo "Jar: ${SPARK_APP_JAR}"
+            echo "Output:"
+            cat result.txt
             exit 1
           else
-            cat result.txt |grep submissionId | awk '{print $3}' | tr -d '",' > ${RUN_DIR}/submissionId
+            cat result.txt | grep submissionId | awk '{print $3}' | tr -d '",' > ${RUN_DIR}/submissionId
           fi
 
         # Do not inherit!
