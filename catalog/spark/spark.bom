@@ -105,7 +105,6 @@ brooklyn.catalog:
             spark.app.jar:
               description: The application jar
               defaultValue: "http://dl.bintray.com/typesafe/maven-releases/org/apache/spark/spark-examples_2.11/1.6.0-typesafe-001/spark-examples_2.11-1.6.0-typesafe-001.jar"
-
       brooklyn.enrichers:
       # publish URLs when service is up
       # `spark.url` for public access, `spark.subnet.url` for internal access
@@ -158,8 +157,6 @@ brooklyn.catalog:
           type: spark-node
           name: Spark Master
           id: spark-master
-          brooklyn.config:
-            spark.master.rest.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.rest.url")
 
       memberSpec:
         $brooklyn:entitySpec:
@@ -168,14 +165,12 @@ brooklyn.catalog:
           id: spark-worker
           brooklyn.config:
             spark.master.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.url")
-            spark.master.rest.url: $brooklyn:entity("spark-master").attributeWhenReady("spark.rest.url")
 
   - id: spark-application
     description: An Apache Spark Application
     item:
       type: org.apache.brooklyn.entity.software.base.VanillaSoftwareProcess
       name: Spark Application
-      id: spark-application
       brooklyn.parameters:
         - name: spark.app.class
           label: "Spark App Class"
@@ -189,7 +184,12 @@ brooklyn.catalog:
             Spark App Jar
           type: string
           default: "http://dl.bintray.com/typesafe/maven-releases/org/apache/spark/spark-examples_2.11/1.6.0-typesafe-001/spark-examples_2.11-1.6.0-typesafe-001.jar"
-
+      brooklyn.enrichers:
+        - type: org.apache.brooklyn.enricher.stock.Propagator
+          brooklyn.config:
+            producer: $brooklyn:entity("spark-master")
+            propagating:
+            - main.uri
       brooklyn.initializers:
         - type: org.apache.brooklyn.core.sensor.ssh.SshCommandSensor
           brooklyn.config:
@@ -207,25 +207,21 @@ brooklyn.catalog:
             uri:
               '$brooklyn:formatString':
                 - '%s/v1/submissions/status/%s'
-                - $brooklyn:config("spark.master.rest.url")
+                - $brooklyn:entity("spark-master").attributeWhenReady("spark.rest.url")
                 - $brooklyn:attributeWhenReady("spark.app.submission.id")
 
       brooklyn.config:
-
         shell.env:
           PARENT_RUN_DIR: $brooklyn:component("parent", "ignored").attributeWhenReady("run.dir")
-          # Worker nodes know the Spark master but the master doesn't.
-          PARENT_MASTER: $brooklyn:component("parent", "ignored").config("spark.master.url")
-          PARENT_OWN_URL: $brooklyn:component("parent", "ignored").attributeWhenReady("spark.url")
+          CLUSTER_URL: $brooklyn:entity("spark-master").attributeWhenReady("spark.cluster.url")
           SPARK_APP_CLASS: $brooklyn:config("spark.app.class")
           SPARK_APP_JAR: $brooklyn:config("spark.app.jar")
           RUN_DIR: $brooklyn:attributeWhenReady("run.dir")
 
         launch.command: |
           set -x
-          IP=${PARENT_MASTER:-$PARENT_OWN_URL}
           SPARK_DIR=$(find "$PARENT_RUN_DIR/" -maxdepth 1 -type d  | tail -n 1)
-          "${SPARK_DIR}/bin/spark-submit" --deploy-mode cluster --master "${IP}" --class "${SPARK_APP_CLASS}" "${SPARK_APP_JAR}" 2> result.txt
+          "${SPARK_DIR}/bin/spark-submit" --deploy-mode cluster --master "${CLUSTER_URL}" --class "${SPARK_APP_CLASS}" "${SPARK_APP_JAR}" 2> result.txt
 
           if [ $? -ne 0 ]; then
             echo "An error occurred when running spark-submit with parameters:"
