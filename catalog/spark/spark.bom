@@ -35,6 +35,13 @@ brooklyn.catalog:
           Spark Download URL
         type: string
         default: "http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz"
+      - name: spark.sharedsecuritygroup.create
+        label: "Configure cloud security groups"
+        description: |
+          Configure cloud security groups to allow instances to communicate on ports: 4040-4050.
+          Supported on clouds: AWS, Azure
+        type: boolean
+        default: true
 
       install.command: |
         # get java
@@ -209,7 +216,7 @@ brooklyn.catalog:
             period: 3s
             command: |
               FILE="${RUN_DIR}/submissionId"
-              sudo test -f "$FILE" && sudo cat "$FILE"
+              test -f "$FILE" && cat "$FILE"
 
         - type: org.apache.brooklyn.core.sensor.http.HttpRequestSensor
           brooklyn.config:
@@ -233,7 +240,7 @@ brooklyn.catalog:
         launch.command: |
           set -x
           SPARK_DIR=$(find "$PARENT_RUN_DIR/" -maxdepth 1 -type d  | tail -n 1)
-          sudo "${SPARK_DIR}/bin/spark-submit" --deploy-mode cluster --master "${CLUSTER_URL}" --class "${SPARK_APP_CLASS}" "${SPARK_APP_JAR}" 2> result.txt
+          "${SPARK_DIR}/bin/spark-submit" --deploy-mode cluster --master "${CLUSTER_URL}" --class "${SPARK_APP_CLASS}" "${SPARK_APP_JAR}" 2> result.txt
 
           if [ $? -ne 0 ]; then
             echo "An error occurred when running spark-submit with parameters:"
@@ -244,7 +251,7 @@ brooklyn.catalog:
             cat result.txt
             exit 1
           else
-            sudo cat result.txt | grep submissionId | awk '{print $3}' | tr -d '",' > ${RUN_DIR}/submissionId
+            cat result.txt | grep submissionId | awk '{print $3}' | tr -d '",' > ${RUN_DIR}/submissionId
           fi
 
         # Do not inherit!
@@ -284,10 +291,10 @@ brooklyn.catalog:
           default: 3
         - *sparkDownloadUrl
         - name: spark.sharedsecuritygroup.create
-          label: "Create Driver UI SharedSecurityGroup"
+          label: "Configure cloud security groups"
           description: |
-            Kubernetes blueprint will configure security groups to allow access to the
-            driver ui port range
+            Configure cloud security groups to allow instances to communicate on ports: 4040-4050.
+            Supported on clouds: AWS, Azure
           type: boolean
           default: true
 
