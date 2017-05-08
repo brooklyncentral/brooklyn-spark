@@ -21,6 +21,7 @@ brooklyn.catalog:
         provisioning.properties:
           osFamily: centos
           osVersionRegex: 7
+
   - id: spark-node
     description: A standalone Apache Spark node, master unless given a spark.master.url
     item:
@@ -34,6 +35,13 @@ brooklyn.catalog:
           Spark Download URL
         type: string
         default: "http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz"
+      - name: spark.sharedsecuritygroup.create
+        label: "Configure cloud security groups"
+        description: |
+          Configure cloud security groups to allow instances to communicate on ports: 4040-4050.
+          Supported on clouds: AWS, Azure
+        type: boolean
+        default: true
 
       install.command: |
         # get java
@@ -61,8 +69,10 @@ brooklyn.catalog:
         export SPARK_MASTER_IP=${OWN_IP}
         export SPARK_MASTER_PORT=${LOCAL_SPARK_PORT}
         export SPARK_WORKER_PORT=${LOCAL_SPARK_PORT}
-        export SPARK_MASTER_WEBUI_PORT=${SPARK_WEBUI_PORT}
-        [ -z "$SPARK_MASTER_URL" ] && sbin/start-master.sh || sbin/start-slave.sh ${SPARK_MASTER_URL}
+        export SPARK_MASTER_WEBUI_PORT=${SPARK_WEBUI_MASTER_PORT}
+        export SPARK_WORKER_WEBUI_PORT=${SPARK_WEBUI_WORKER_PORT}
+        export SPARK_MASTER_HOST=${OWN_IP}
+        [ -z "$SPARK_MASTER_URL" ] && sbin/start-master.sh|| sbin/start-slave.sh ${SPARK_MASTER_URL}
 
       checkRunning.command: |
         ps aux | grep java | grep org.apache.spark
@@ -73,7 +83,8 @@ brooklyn.catalog:
       shell.env:
         SPARK_MASTER_URL: $brooklyn:config("spark.master.url")
         LOCAL_SPARK_PORT: $brooklyn:config("spark.port")
-        SPARK_WEBUI_PORT: $brooklyn:config("spark.webui.port")
+        SPARK_WEBUI_MASTER_PORT: $brooklyn:config("spark.webui.master.port")
+        SPARK_WEBUI_WORKER_PORT: $brooklyn:config("spark.webui.worker.port")
         SPARK_DOWNLOAD_URL: $brooklyn:config("spark.download.url")
         OWN_IP: $brooklyn:attributeWhenReady("host.subnet.address")
         PUBLIC_IP: $brooklyn:attributeWhenReady("host.address")
@@ -81,7 +92,8 @@ brooklyn.catalog:
       brooklyn.config:
         spark.port: 7077
         spark.rest.port: 6066
-        spark.webui.port: 8080
+        spark.webui.master.port: 8080
+        spark.webui.worker.port: 8081
         # prevents the Spark app from being submitted before the node is ready
         children.startable.mode: background_late
 
@@ -91,6 +103,13 @@ brooklyn.catalog:
         minDisk: 100gb
         osFamily: centos
         osVersionRegex: 7
+        customizer:
+          $brooklyn:object:
+            type: org.apache.brooklyn.location.jclouds.networking.SharedLocationSecurityGroupCustomizer
+            object.fields:
+              tcpPortRanges:
+                - "4040-4050"
+              enabled: $brooklyn:config("spark.sharedsecuritygroup.create")
 
       brooklyn.initializers:
       - type: org.apache.brooklyn.core.effector.AddChildrenEffector
@@ -143,7 +162,7 @@ brooklyn.catalog:
           enricher.targetSensor: $brooklyn:sensor("main.uri")
           enricher.targetValue:
             $brooklyn:formatString("http://%s:%s/",
-              $brooklyn:attributeWhenReady("host.address"), $brooklyn:config("spark.webui.port"))
+              $brooklyn:attributeWhenReady("host.address"), $brooklyn:config("spark.webui.master.port"))
 
   - id: spark-cluster-entity
     description: An Apache Spark cluster
@@ -271,6 +290,13 @@ brooklyn.catalog:
           type: integer
           default: 3
         - *sparkDownloadUrl
+        - name: spark.sharedsecuritygroup.create
+          label: "Configure cloud security groups"
+          description: |
+            Configure cloud security groups to allow instances to communicate on ports: 4040-4050.
+            Supported on clouds: AWS, Azure
+          type: boolean
+          default: true
 
       ## REQUIRED - the location to deploy to
       #location:
